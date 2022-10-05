@@ -1,0 +1,433 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitFilterTorsionLibraryAlerts.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitFilterPAINS.html" title="RDKitFilterPAINS.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitFilterTorsionStrainEnergyAlerts.html" title="RDKitFilterTorsionStrainEnergyAlerts.html">Next</a></td><td width="34%" align="middle"><strong>RDKitFilterTorsionLibraryAlerts.py</strong></td><td width="33%" align="right"><a href="././code/RDKitFilterTorsionLibraryAlerts.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitFilterTorsionLibraryAlerts.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitFilterTorsionLibraryAlerts.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitFilterTorsionLibraryAlerts.py - Filter torsion library alerts</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitFilterTorsionLibraryAlerts.py [<b>--alertsMode</b> &lt;Red, RedAndOrange&gt;] [<b>--alertsMinCount</b> &lt;Number&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--mode</b> &lt;filter or count&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name,Value,...&gt;] [<b>--nitrogenLonePairParams</b> &lt;Name,Value,...&gt;] [<b>--outfileAlerts</b> &lt;yes or no&gt;] [<b>--outfileAlertsMode</b> &lt;All or AlertsOnly&gt;] [<b>--outfileFiltered</b> &lt;yes or no&gt;] [<b>--outfilesFilteredByRules</b> &lt;yes or no&gt;] [<b>--outfilesFilteredByRulesMaxCount</b> &lt;All or number&gt;] [<b>--outfileSummary</b> &lt;yes or no&gt;] [<b>--outfileSDFieldLabels</b> &lt;Type,Label,...&gt;] [<b>--outfileParams</b> &lt;Name,Value,...&gt;] [<b>--overwrite</b>] [ <b>--rotBondsSMARTSMode</b> &lt;NonStrict, SemiStrict,...&gt;] [<b>--rotBondsSMARTSPattern</b> &lt;SMARTS&gt;] [<b>--torsionLibraryFile</b> &lt;FileName or auto&gt;] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>RDKitFilterTorsionLibraryAlerts.py [<b>--torsionLibraryFile</b> &lt;FileName or auto&gt;] <b>-l</b> | <b>--list</b></p>
+<p>RDKitFilterTorsionLibraryAlerts.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Filter strained molecules from an input file for torsion library [ Ref 146, 152, 159 ] alerts by matching rotatable bonds against SMARTS patterns specified for torsion rules in a torsion library file and write out appropriate molecules to output files. The molecules must have 3D coordinates in input file. The default torsion library file, TorsionLibrary.xml, is available under MAYACHEMTOOLS/lib/data directory.</p>
+<p>The data in torsion library file is organized in a hierarchical manner. It consists of one generic class and six specific classes at the highest level. Each class contains multiple subclasses corresponding to named functional groups or substructure patterns. The subclasses consist of torsion rules sorted from specific to generic torsion patterns. The torsion rule, in turn, contains a list of peak values for torsion angles and two tolerance values. A pair of tolerance values define torsion bins around a torsion peak value. For example:</p>
+<div class="OptionsBox">    &lt;library&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;GG&quot; id1=&quot;G&quot; id2=&quot;G&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;CO&quot; id1=&quot;C&quot; id2=&quot;O&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            &lt;hierarchySubClass name=&quot;Ester bond I&quot; smarts=&quot;O=[C:2][O:3]&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &lt;torsionRule smarts=&quot;[O:1]=[C:2]!@[O:3]~[CH0:4]&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;angleList&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;angle value=&quot;0.0&quot; tolerance1=&quot;20.00&quot;
+                         tolerance2=&quot;25.00&quot; score=&quot;56.52&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/angleList&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &lt;/torsionRule&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ...
+         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;NC&quot; id1=&quot;N&quot; id2=&quot;C&quot;&gt;
+         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;SN&quot; id1=&quot;S&quot; id2=&quot;N&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;CS&quot; id1=&quot;C&quot; id2=&quot;S&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;CC&quot; id1=&quot;C&quot; id2=&quot;C&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass name=&quot;SS&quot; id1=&quot;S&quot; id2=&quot;S&quot;&gt;
+         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>    &lt;/library&gt;
+<br/>    </div>
+<p>The rotatable bonds in a 3D molecule are identified using a default SMARTS pattern. A custom SMARTS pattern may be optionally specified to detect rotatable bonds. Each rotatable bond is matched to a torsion rule in the torsion library and assigned one of the following three alert categories: Green, Orange or Red. The rotatable bond is marked Green or Orange for the measured angle of the torsion pattern within the first or second tolerance bins around a torsion peak. Otherwise, it&#39;s marked Red implying that the measured angle is not observed in the structure databases employed to generate the torsion library.</p>
+<p>The following output files are generated after the filtering:</p>
+<div class="OptionsBox">    &lt;OutfileRoot&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_Filtered.sdf
+<br/>    &lt;OutfileRoot&gt;_AlertsSummary.csv
+<br/>    &lt;OutfileRoot&gt;_Filtered_TopRule*.sdf
+<br/>    </div>
+<p>The supported input file formats are: Mol (.mol), SD (.sdf, .sd)</p>
+<p>The supported output file formats are: SD (.sdf, .sd)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---alertsMode-Red-RedAndOrange-default:-Red"><b>-a, --alertsMode</b> &lt;Red, RedAndOrange&gt; [default: Red]</dt>
+<dd>
+<p>Torsion library alert types to use for filtering molecules containing rotatable bonds marked with Green, Orange, or Red alerts. Possible values: Red or RedAndOrange.</p>
+</dd>
+<dt id="alertsMinCount-Number-default:-1"><b>--alertsMinCount</b> &lt;Number&gt; [default: 1]</dt>
+<dd>
+<p>Minimum number of rotatable bond alerts in a molecule for filtering the molecule.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes
+<br/>    </div>
+</dd>
+<dt id="l---list"><b>-l, --list</b></dt>
+<dd>
+<p>List torsion library information without performing any filtering.</p>
+</dd>
+<dt id="m---mode-filter-or-count-default:-filter"><b>-m, --mode</b> &lt;filter or count&gt; [default: filter]</dt>
+<dd>
+<p>Specify whether to filter molecules for torsion library [ Ref 146, 152, 159 ] alerts by matching rotatable bonds against SMARTS patterns specified for torsion rules and write out the rest of the molecules to an outfile or simply count the number of matched molecules marked for filtering.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="n---nitrogenLonePairParams-Name-Value-...-default:-auto"><b>-n, --nitrogenLonePairParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to match torsion SMARTS patterns containing non-standard construct &#39;N_lp&#39; corresponding to nitrogen lone pair.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    allowHydrogenNbrs, yes   [ Possible values: yes or no ]
+<br/>    planarityTolerance, 1  [Possible values: &gt;=0] 
+<br/>    </div>
+<p>These parameters are used during the matching of torsion rules containing &#39;N_lp&#39; in their SMARTS patterns. The &#39;allowHydrogensNbrs&#39; allows the use hydrogen neighbors attached to nitrogen during the determination of its planarity. The &#39;planarityTolerance&#39; in degrees represents the tolerance allowed for nitrogen to be considered coplanar with its three neighbors.</p>
+<p>The torsion rules containing &#39;N_lp&#39; in their SMARTS patterns are categorized into the following two types of rules:</p>
+<div class="OptionsBox">    TypeOne:  
+<br/>    
+<br/>    [CX4:1][CX4H2:2]!@[NX3;&quot;N_lp&quot;:3][CX4:4]
+<br/>    [C:1][CX4H2:2]!@[NX3;&quot;N_lp&quot;:3][C:4]
+<br/>    ... ... ...
+ 
+<br/>    TypeTwo:  
+<br/>    
+<br/>    [!#1:1][CX4:2]!@[NX3;&quot;N_lp&quot;:3]
+<br/>    [C:1][$(S(=O)=O):2]!@[&quot;N_lp&quot;:3]
+<br/>    ... ... ...
+<br/>    </div>
+<p>The torsions are matched to torsion rules containing &#39;N_lp&#39; using specified SMARTS patterns without the &#39;N_lp&#39; along with additional constraints using the following methodology:</p>
+<div class="OptionsBox">    TypeOne:  
+<br/>    
+<br/>    . SMARTS pattern must contain four mapped atoms and the third
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        mapped atom must be a nitrogen matched with &#39;NX3:3&#39;
+<br/>    . Nitrogen atom must have 3 neighbors. The &#39;allowHydrogens&#39;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        parameter controls inclusion of hydrogens as its neighbors.
+<br/>    . Nitrogen atom and its 3 neighbors must be coplanar.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &#39;planarityTolerance&#39; parameter provides tolerance in degrees
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for nitrogen to be considered coplanar with its 3 neighbors.
+<br/>    
+<br/>    TypeTwo:  
+<br/>    
+<br/>    . SMARTS pattern must contain three mapped atoms and the third
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        mapped atom must be a nitrogen matched with &#39;NX3:3&#39;. The 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        third mapped atom may contain only &#39;N_lp:3&#39; The missing &#39;NX3&#39;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        is automatically detected.
+<br/>    . Nitrogen atom must have 3 neighbors. &#39;allowHydrogens&#39;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        parameter controls inclusion of hydrogens as neighbors.
+<br/>    . Nitrogen atom and its 3 neighbors must not be coplanar.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &#39;planarityTolerance&#39; parameter provides tolerance in degrees
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for nitrogen to be considered coplanar with its 3 neighbors.
+<br/>    . Nitrogen lone pair position equivalent to VSEPR theory is
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        determined based on the position of nitrogen and its neighbors.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        A vector normal to 3 nitrogen neighbors is calculated and added
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        to the coordinates of nitrogen atom to determine the approximate
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        position of the lone pair. It is used as the fourth position to
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        calculate the torsion angle.
+<br/>    </div>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileAlerts-yes-or-no-default:-yes"><b>--outfileAlerts</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write out alerts information to SD output files.</p>
+</dd>
+<dt id="outfileAlertsMode-All-or-AlertsOnly-default:-AlertsOnly"><b>--outfileAlertsMode</b> &lt;All or AlertsOnly&gt; [default: AlertsOnly]</dt>
+<dd>
+<p>Write alerts information to SD output files for all alerts or only for alerts specified by &#39;--AlertsMode&#39; option. Possible values: All or AlertsOnly This option is only valid for &#39;Yes&#39; value of &#39;--outfileAlerts&#39; option.</p>
+<p>The following alerts information is added to SD output files using &#39;TorsionAlerts&#39; data field:</p>
+<div class="OptionsBox">    RotBondIndices TorsionAlert TorsionIndices TorsionAngle
+<br/>    TorsionAngleViolation HierarchyClass HierarchySubClass
+<br/>    TorsionRule TorsionPeaks Tolerances1 Tolerances2
+<br/>    </div>
+<p>The &#39;RotBondsCount&#39; and &#39;TorsionAlertsCount&#39; data fields are always added to SD output files containing both remaining and filtered molecules.</p>
+<p>Format:</p>
+<div class="OptionsBox">    &gt; &lt;RotBondsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TorsionAlertsCount (Green Orange Red)&gt;
+<br/>    Number Number Number
+<br/>    
+<br/>    &gt; &lt;TorsionAlerts (RotBondIndices TorsionAlert TorsionIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionAngle TorsionAngleViolation HierarchyClass
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        HierarchySubClass TorsionPeaks Tolerances1 Tolerances2
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionRule)&gt;
+<br/>    AtomIndex2,AtomIndex3  AlertType AtomIndex1,AtomIndex2,AtomIndex3,
+<br/>    AtomIndex4 Angle AngleViolation ClassName SubClassName
+<br/>    CommaDelimPeakValues CommaDelimTol1Values CommDelimTol2Values
+<br/>    SMARTS ... ... ...
+     ... ... ...
+<br/>    </div>
+<p>A set of 11 values is written out as value of &#39;TorsionAlerts&#39; data field for each torsion in a molecule. The space character is used as a delimiter to separate values with in a set and across set. The comma character is used to delimit multiple values for each value in a set.</p>
+<p>The &#39;RotBondIndices&#39; and &#39;TorsionIndices&#39; contain 2 and 4 comma delimited values representing atom indices for a rotatable bond and matched torsion. The &#39;TorsionPeaks&#39;, &#39;Tolerances1&#39;, and &#39;Tolerances2&#39; contain same number of comma delimited values corresponding to torsion angle peaks and tolerance intervals specified in torsion library. For example:</p>
+<div class="OptionsBox">    ... ... ...
+<br/>    &gt;  &lt;RotBondsCount&gt;  (1) 
+<br/>    7
+<br/>    
+<br/>    &gt;  &lt;TorsionAlertsCount (Green Orange Red)&gt;  (1) 
+<br/>    3 2 2
+<br/>    
+<br/>    &gt;  &lt;TorsionAlerts (RotBondIndices TorsionAlert TorsionIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionAngle TorsionAngleViolation HierarchyClass
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        HierarchySubClass TorsionPeaks Tolerances1 Tolerances2
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionRule)&gt;
+<br/>    1,2 Red 32,2,1,0 0.13 149.87 NC Anilines 180.0 10.0 30.0 [cH0:1][c:2]
+<br/>    ([cH,nX2H0])!@[NX3H1:3][CX4:4] 8,9 Red 10,9,8,28 -0.85 GG
+<br/>    None -90.0,90.0 30.0,30.0 60.0,60.0 [cH1:1][a:2]([cH1])!@[a:3]
+<br/>    ([cH0])[cH0:4]
+<br/>    ... ... ...
+<br/>    </div>
+</dd>
+<dt id="outfileFiltered-yes-or-no-default:-yes"><b>--outfileFiltered</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write out a file containing filtered molecules. Its name is automatically generated from the specified output file. Default: &lt;OutfileRoot&gt;_ Filtered.&lt;OutfileExt&gt;.</p>
+</dd>
+<dt id="outfilesFilteredByRules-yes-or-no-default:-yes"><b>--outfilesFilteredByRules</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write out SD files containing filtered molecules for individual torsion rules triggering alerts in molecules. The name of SD files are automatically generated from the specified output file. Default file names: &lt;OutfileRoot&gt;_ Filtered_TopRule*.sdf</p>
+<p>The following alerts information is added to SD output files:</p>
+<div class="OptionsBox">    &gt; &lt;RotBondsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt;  &lt;TorsionAlertsCount (Green Orange Red)&gt; 
+<br/>    Number Number Number
+<br/>    
+<br/>    &gt;  &lt;TorsionRule (HierarchyClass HierarchySubClass TorsionPeaks
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Tolerances1 Tolerances2 TorsionRule)&gt; 
+<br/>    ClassName SubClassName CommaDelimPeakValues CommaDelimTol1Values
+<br/>    CommDelimTol2Values SMARTS ... ... ...
+     ... ... ...
+<br/>    
+<br/>    &gt; &lt;TorsionRuleAlertsCount (Green Orange Red)&gt;
+<br/>    Number Number Number
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleAlerts (RotBondIndices TorsionAlert TorsionIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionAngle TorsionAngleViolation)&gt;
+<br/>    AtomIndex2,AtomIndex3  AlertType AtomIndex1,AtomIndex2,AtomIndex3,
+<br/>    AtomIndex4 Angle AngleViolation ... ... ...
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleMaxAngleViolation&gt;
+<br/>    Number
+     ... ... ...
+<br/>    </div>
+<p>For example:</p>
+<div class="OptionsBox">    ... ... ...
+<br/>    &gt;  &lt;RotBondsCount&gt;  (1) 
+<br/>    7
+     
+<br/>    &gt;  &lt;TorsionAlertsCount (Green Orange Red)&gt;  (1) 
+<br/>    3 2 2
+<br/>    
+<br/>    &gt;  &lt;TorsionRule (HierarchyClass HierarchySubClass TorsionPeaks
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Tolerances1 Tolerances2 TorsionRule)&gt;  (1) 
+<br/>    NC Anilines 180.0 10.0 30.0 [cH0:1][c:2]([cH,nX2H0])!@[NX3H1:3][CX4:4]
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleAlertsCount (Green Orange Red)&gt;  (1) 
+<br/>    0 0 1
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleAlerts (RotBondIndices TorsionAlert TorsionIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionAngle TorsionAngleViolation)&gt;  (1) 
+<br/>    1,2 Red 32,2,1,0 0.13 149.87
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleMaxAngleViolation&gt;  (1) 
+<br/>    149.87
+<br/>    ... ... ...
+<br/>    </div>
+</dd>
+<dt id="outfilesFilteredByRulesMaxCount-All-or-number-default:-10"><b>--outfilesFilteredByRulesMaxCount</b> &lt;All or number&gt; [default: 10]</dt>
+<dd>
+<p>Write out SD files containing filtered molecules for specified number of top N torsion rules triggering alerts for the largest number of molecules or for all torsion rules triggering alerts across all molecules.</p>
+</dd>
+<dt id="outfileSummary-yes-or-no-default:-yes"><b>--outfileSummary</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write out a CVS text file containing summary of torsions rules responsible for triggering torsion alerts. Its name is automatically generated from the specified output file. Default: &lt;OutfileRoot&gt;_AlertsSummary.csv.</p>
+<p>The following alerts information is written to summary text file:</p>
+<div class="OptionsBox">    TorsionRule, TorsionPeaks, Tolerances1, Tolerances2,
+<br/>    HierarchyClass, HierarchySubClass, TorsionAlertType,
+<br/>    TorsionAlertCount, TorsionAlertMolCount
+     </div>
+<p>The double quotes characters are removed from SMART patterns before before writing them to a CSV file. In addition, the torsion rules are sorted by TorsionAlertMolCount. For example:</p>
+<div class="OptionsBox">    &quot;TorsionRule&quot;,&quot;TorsionPeaks&quot;,&quot;Tolerances1&quot;,&quot;Tolerances2&quot;,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot;HierarchyClass&quot;,&quot;HierarchySubClass&quot;,&quot;TorsionAlertTypes&quot;,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot;TorsionAlertCount&quot;,&quot;TorsionAlertMolCount&quot;
+<br/>    &quot;[!#1:1][CX4H2:2]!@[CX4H2:3][!#1:4]&quot;,&quot;-60.0,60.0,180.0&quot;,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot;20.0,20.0,20.0&quot;,&quot;30.0,30.0,30.0&quot;,&quot;CC&quot;,&quot;None/[CX4:2][CX4:3]&quot;,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot;Red&quot;,&quot;16&quot;,&quot;11&quot;
+<br/>    ... ... ...
+<br/>    </div>
+</dd>
+<dt id="outfileSDFieldLabels-Type-Label-...-default:-auto"><b>--outfileSDFieldLabels</b> &lt;Type,Label,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of SD data field type and label value pairs for writing torsion alerts information along with molecules to SD files.</p>
+<p>The supported SD data field label type along with their default values are shown below:</p>
+<div class="OptionsBox">    For all SD files:
+<br/>    
+<br/>    RotBondsCountLabel, RotBondsCount
+<br/>    TorsionAlertsCountLabel, TorsionAlertsCount (Green Orange Red)
+<br/>    TorsionAlertsLabel, TorsionAlerts (RotBondIndices TorsionAlert
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionIndices TorsionAngle TorsionAngleViolation
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        HierarchyClass HierarchySubClass TorsionPeaks Tolerances1
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Tolerances2 TorsionRule)
+<br/>    
+<br/>    For individual SD files filtered by torsion rules:
+<br/>    
+<br/>    TorsionRuleLabel, TorsionRule (HierarchyClass HierarchySubClass
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionPeaks Tolerances1 Tolerances2 TorsionRule)
+<br/>    TorsionRuleAlertsCountLabel, TorsionRuleAlertsCount (Green Orange
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Red)
+<br/>    TorsionRuleAlertsLabel, TorsionRuleAlerts (RotBondIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionAlert TorsionIndices TorsionAngle TorsionAngleViolation)
+<br/>    TorsionRuleMaxAngleViolationLabel, TorsionRuleMaxAngleViolation
+<br/>    </div>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: kekulize,yes
+<br/>    </div>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="r---rotBondsSMARTSMode-NonStrict-SemiStrict-...-default:-SemiStrict"><b>-r, --rotBondsSMARTSMode</b> &lt;NonStrict, SemiStrict,...&gt; [default: SemiStrict]</dt>
+<dd>
+<p>SMARTS pattern to use for identifying rotatable bonds in a molecule for matching against torsion rules in the torsion library. Possible values: NonStrict, SemiStrict, Strict or Specify. The rotatable bond SMARTS matches are filtered to ensure that each atom in the rotatable bond is attached to at least two heavy atoms.</p>
+<p>The following SMARTS patterns are used to identify rotatable bonds for different modes:</p>
+<div class="OptionsBox">    NonStrict: [!$(*#*)&amp;!D1]-&amp;!@[!$(*#*)&amp;!D1]
+<br/>    
+<br/>    SemiStrict:
+<br/>    [!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)&amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)
+<br/>    &amp;!$(C([CH3])([CH3])[CH3])]-!@[!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)
+<br/>    &amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)&amp;!$(C([CH3])([CH3])[CH3])]
+<br/>    
+<br/>    Strict:
+<br/>    [!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)&amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)
+<br/>    &amp;!$(C([CH3])([CH3])[CH3])&amp;!$([CD3](=[N,O,S])-!@[#7,O,S!D1])
+<br/>    &amp;!$([#7,O,S!D1]-!@[CD3]=[N,O,S])&amp;!$([CD3](=[N+])-!@[#7!D1])
+<br/>    &amp;!$([#7!D1]-!@[CD3]=[N+])]-!@[!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)
+<br/>    &amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)&amp;!$(C([CH3])([CH3])[CH3])]
+<br/>    </div>
+<p>The &#39;NonStrict&#39; and &#39;Strict&#39; SMARTS patterns are available in RDKit. The &#39;NonStrict&#39; SMARTS pattern corresponds to original Daylight SMARTS specification for rotatable bonds. The &#39;SemiStrict&#39; SMARTS pattern is derived from &#39;Strict&#39; SMARTS patterns for its usage in this script.</p>
+<p>You may use any arbitrary SMARTS pattern to identify rotatable bonds by choosing &#39;Specify&#39; value for &#39;-r, --rotBondsSMARTSMode&#39; option and providing its value via &#39;--rotBondsSMARTSPattern&#39; option.</p>
+</dd>
+<dt id="rotBondsSMARTSPattern-SMARTS"><b>--rotBondsSMARTSPattern</b> &lt;SMARTS&gt;</dt>
+<dd>
+<p>SMARTS pattern for identifying rotatable bonds. This option is only valid for &#39;Specify&#39; value of &#39;-r, --rotBondsSMARTSMode&#39; option.</p>
+</dd>
+<dt id="t---torsionLibraryFile-FileName-or-auto-default:-auto"><b>-t, --torsionLibraryFile</b> &lt;FileName or auto&gt; [default: auto]</dt>
+<dd>
+<p>Specify a XML file name containing data for torsion library hierarchy or use default file, TorsionLibrary.xml, available in MAYACHEMTOOLS/lib/data directory.</p>
+<p>The format of data in local XML file must match format of the data in Torsion Library [ Ref 146, 152, 159 ] file available in MAYACHEMTOOLS data directory.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To filter molecules containing any rotatable bonds marked with Red alerts based on torsion rules in the torsion library and write out SD files containing remaining and filtered molecules, and individual SD files for torsion rules triggering alerts along with appropriate torsion information for red alerts, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py -i Sample3D.sdf -o Sample3DOut.sdf</div>
+<p>To run the first example for only counting number of alerts without writing out any SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py -m count -i Sample3D.sdf -o
+      Sample3DOut.sdf</div>
+<p>To run the first example for filtertering molecules marked with Orange or Red alerts and write out SD files, tye:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py -m Filter --alertsMode RedAndOrange
+      -i Sample3D.sdf -o Sample3DOut.sdf</div>
+<p>To run the first example for filtering molecules and writing out torsion information for all alert types to SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py --outfileAlertsMode All
+      -i Sample3D.sdf -o Sample3DOut.sdf</div>
+<p>To run the first example for filtering molecules in multiprocessing mode on all available CPUs without loading all data into memory and write out SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py --mp yes -i Sample3D.sdf
+     -o Sample3DOut.sdf</div>
+<p>To run the first example for filtering molecules in multiprocessing mode on all available CPUs by loading all data into memory and write out a SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py  --mp yes --mpParams
+      &quot;inputDataMode, InMemory&quot; -i Sample3D.sdf  -o Sample3DOut.sdf</div>
+<p>To run the first example for filtering molecules in multiprocessing mode on specific number of CPUs and chunksize without loading all data into memory and write out SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py --mp yes --mpParams
+      &quot;inputDataMode,lazy,numProcesses,4,chunkSize,8&quot;  -i Sample3D.sdf
+      -o Sample3DOut.sdf</div>
+<p>To list information about default torsion library file without performing any filtering, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py -l</div>
+<p>To list information about a local torsion library XML file without performing any, filtering, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionLibraryAlerts.py --torsionLibraryFile
+      TorsionLibrary.xml -l</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="COLLABORATOR">COLLABORATOR</h2>
+<p>Pat Walters</p>
+<h1 id="ACKNOWLEDGMENTS">ACKNOWLEDGMENTS</h2>
+<p>Wolfgang Guba, Patrick Penner, Levi Pierce</p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitFilterChEMBLAlerts.html">RDKitFilterChEMBLAlerts.py</a>, <a href="./RDKitFilterPAINS.html">RDKitFilterPAINS.py</a>, <a href="./RDKitFilterTorsionStrainEnergyAlerts.html">RDKitFilterTorsionStrainEnergyAlerts.py</a>, <a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitSearchSMARTS.html">RDKitSearchSMARTS.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>This script uses the Torsion Library jointly developed by the University of Hamburg, Center for Bioinformatics, Hamburg, Germany and F. Hoffmann-La-Roche Ltd., Basel, Switzerland.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitFilterPAINS.html" title="RDKitFilterPAINS.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitFilterTorsionStrainEnergyAlerts.html" title="RDKitFilterTorsionStrainEnergyAlerts.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>RDKitFilterTorsionLibraryAlerts.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

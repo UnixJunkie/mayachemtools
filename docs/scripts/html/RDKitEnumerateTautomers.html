@@ -1,0 +1,184 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitEnumerateTautomers.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitEnumerateStereoisomers.html" title="RDKitEnumerateStereoisomers.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitFilterChEMBLAlerts.html" title="RDKitFilterChEMBLAlerts.html">Next</a></td><td width="34%" align="middle"><strong>RDKitEnumerateTautomers.py</strong></td><td width="33%" align="right"><a href="././code/RDKitEnumerateTautomers.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitEnumerateTautomers.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitEnumerateTautomers.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitEnumerateTautomers.py - Enumerate tautomers of molecules</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitEnumerateTautomers.py [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name,Value,...&gt;] [<b>--outfileParams</b> &lt;Name,Value,...&gt; ] [<b>--overwrite</b>] [<b>--quiet</b> &lt;yes or no&gt;] [<b>--scoreTautomers</b> &lt;yes or no&gt;] [<b>--sortTautomers</b> &lt;yes or no&gt;] [<b>--tautomerizationParams</b> &lt;Name,Value,...&gt;] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>RDKitEnumerateTautomers.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Enumerate tautomers [ Ref 159 ] for molecules and write them out to an output file. The tautomer enumerator generates both protomers and valence tautomers. You may optionally calculate tautomer scores and sort tautomers by SMILES string. The canonical tautomer is placed at the top during sorting.</p>
+<p>The supported input file formats are: SD (.sdf, .sd), SMILES (.smi., csv, .tsv, .txt)</p>
+<p>The supported output file formats are: SD (.sdf, .sd), SMILES (.smi)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes
+<br/>    SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,auto,sanitize,yes
+<br/>    </div>
+<p>Possible values for smilesDelimiter: space, comma or tab.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: compute2DCoords,auto,kekulize,yes
+<br/>    SMILES: smilesKekulize,no,smilesDelimiter,space, smilesIsomeric,yes,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no
+<br/>    </div>
+<p>Default value for compute2DCoords: yes for SMILES input file; no for all other file types.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="q---quiet-yes-or-no-default:-no"><b>-q, --quiet</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use quiet mode. The warning and information messages will not be printed.</p>
+</dd>
+<dt id="scoreTautomers-yes-or-no-default:-no"><b>--scoreTautomers</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Calculate and write out tautomer scores [ Ref 159 ].</p>
+</dd>
+<dt id="sortTautomers-yes-or-no-default:-no"><b>--sortTautomers</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Sort tatutomers of a molecule by SMILES string and place canonical tautomer at the top of the list.</p>
+</dd>
+<dt id="t---tautomerizationParams-Name-Value-...-default:-auto"><b>-t, --tautomerizationParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for enumerating tautomers of molecules. The supported parameter names along with their default values are shown below:</p>
+<div class="OptionsBox">    tautomerTransformsFile,none,
+<br/>    maxTautomers,1000,maxTransforms,1000,
+<br/>    tautomerRemoveBondStereo,yes,tautomerRemoveIsotopicHs,yes
+<br/>    tautomerRemoveSp3Stereo,yes,tautomerReassignStereo,yes
+<br/>    </div>
+<p>A brief description of the tatutomerization parameters, taken from RDKit documentation, is as follows:</p>
+<div class="OptionsBox">    tautomerTransformsFile - File containing tautomer transformations
+<br/>    
+<br/>    maxTautomers - Maximum number of tautomers to generate
+<br/>    maxTransforms - Maximum number of transforms to apply during
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        tautomer enumeration
+<br/>    tautomerRemoveBondStereo - Remove stereochemistry from double bonds
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        involved in tautomerism
+<br/>    tautomerRemoveIsotopicHs: Remove isotopic Hs from centers involved in tautomerism
+<br/>    tautomerRemoveSp3Stereo - Remove stereochemistry from sp3 centers
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        involved in tautomerism
+<br/>    tautomerReassignStereo - AssignStereochemistry on all generated tautomers
+<br/>    </div>
+<p>The default value is set to none for the &#39;tautomerTransformsFile&#39; parameter. The script relies on RDKit to automatically load appropriate tautomer transformations from a set of internal catalog.</p>
+<p>The contents of transformation file are described below:</p>
+<div class="OptionsBox">    tautomerTransformsFile - File containing tautomer transformations
+<br/>    
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        // Name                SMARTS   Bonds  Charges
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        1,3 (thio)keto/enol f  [CX4!H0]-[C]=[O,S,Se,Te;X1]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        1,3 (thio)keto/enol r  [O,S,Se,Te;X2!H0]-[C]=[C]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        1,5 (thio)keto/enol f  [CX4,NX3;!H0]-[C]=[C][CH0]=[O,S,Se,Te;X1]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ... ... ...
+<br/>    </div>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To enumerate tautomers of molecules in a SMILES file and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py -i Sample.smi -o SampleOut.smi</div>
+<p>To enumerate tautomers of molecules in a SD file, calculate tautomer scores, sort tautomers, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py --scoreTautomers yes --sortTautomers yes
+      -i Sample.sdf -o SampleOut.sdf</div>
+<p>To enumerate tautomers of molecules in a SD fie , calculate tautomer scores, sort tautomers, and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py --scoreTautomers yes  --sortTautomers yes
+      --outfileParams &quot;smilesMolProps,yes&quot; -i Sample.smi -o SampleOut.smi</div>
+<p>To enumerate tautomers of molecules in a SD file, performing enumeration in multiprocessing mode on all available CPUs without loading all data into memory, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py --mp yes -i Sample.sdf -o SampleOut.sdf</div>
+<p>To enumerate tautomers of molecules in a SD file, performing enumeration in multiprocessing mode on specific number of CPUs and chunk size without loading all data into memory, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py --mp yes --mpParams &quot;inputDataMode,Lazy,
+      numProcesses,4,chunkSize,8&quot; -i Sample.sdf -o SampleOut.sdf</div>
+<p>To enumerate tautomers of molecules in a SD file using specific values of parameters to contol the enumeration behavior, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py  -t &quot;maxTautomers,1000,maxTransforms,1000,
+      tautomerRemoveBondStereo,yes,tautomerRemoveIsotopicHs,yes,
+      tautomerRemoveSp3Stereo,yes,tautomerReassignStereo,yes&quot;
+      --scoreTautomers yes --sortTautomers yes -i Sample.sdf -o SampleOut.sdf</div>
+<p>To enumerate tautomers for molecules in a CSV SMILES file, SMILES strings in column 1, name in column 2, and generate output SD file, type:</p>
+<div class="ExampleBox">    % RDKitEnumerateTautomers.py --infileParams 
+      &quot;smilesDelimiter,comma,smilesTitleLine,yes,smilesColumn,1,
+      smilesNameColumn,2&quot; --outfileParams &quot;compute2DCoords,yes&quot;
+      -i SampleSMILES.csv -o SampleOut.sdf</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitRemoveDuplicateMolecules.html">RDKitRemoveDuplicateMolecules.py</a>, <a href="./RDKitRemoveInvalidMolecules.html">RDKitRemoveInvalidMolecules.py</a>, <a href="./RDKitRemoveSalts.html">RDKitRemoveSalts.py</a>, <a href="./RDKitSearchFunctionalGroups.html">RDKitSearchFunctionalGroups.py</a>, <a href="./RDKitSearchSMARTS.html">RDKitSearchSMARTS.py</a>, <a href="./RDKitStandardizeMolecules.html">RDKitStandardizeMolecules.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitEnumerateStereoisomers.html" title="RDKitEnumerateStereoisomers.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitFilterChEMBLAlerts.html" title="RDKitFilterChEMBLAlerts.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>RDKitEnumerateTautomers.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:Python/Psi4Util.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./MiscUtil.py.html" title="MiscUtil.py.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLUtil.py.html" title="PyMOLUtil.py.html">Next</a></td><td width="34%" align="middle"><strong>Python/Psi4Util.py</strong></td><td width="33%" align="right"><a href="././code/Psi4Util.py.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/Psi4Util.py.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/Psi4Util.py.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>Psi4Util</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>import Psi4Util</p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p><b>Psi4Util</b> module provides the following functions:</p>
+<p>
+ <a href="#CalculateSinglePointEnergy">CalculateSinglePointEnergy</a>, <a href="#GetAtomPositions">GetAtomPositions</a>, <a href="#InitializePsi4">InitializePsi4</a>, <a href="#JoinMethodNameAndBasisSet">JoinMethodNameAndBasisSet</a>, <a href="#ListPsi4RunParamaters">ListPsi4RunParamaters</a>, <a href="#PerformGeometryOptimization">PerformGeometryOptimization</a>, <a href="#ProcessPsi4CubeFilesParameters">ProcessPsi4CubeFilesParameters</a>, <a href="#ProcessPsi4OptionsParameters">ProcessPsi4OptionsParameters</a>, <a href="#ProcessPsi4RunParameters">ProcessPsi4RunParameters</a>, <a href="#RemoveScratchFiles">RemoveScratchFiles</a>, <a href="#RetrieveIsocontourRangeFromCubeFile">RetrieveIsocontourRangeFromCubeFile</a>, <a href="#RetrieveMinAndMaxValueFromCubeFile">RetrieveMinAndMaxValueFromCubeFile</a>, <a href="#UpdatePsi4OptionsParameters">UpdatePsi4OptionsParameters</a>, <a href="#UpdatePsi4OutputFileUsingPID">UpdatePsi4OutputFileUsingPID</a>, <a href="#UpdatePsi4RunParameters">UpdatePsi4RunParameters</a>
+</p><h1 id="FUNCTIONS">FUNCTIONS</h2>
+<dl>
+<dt id="CalculateSinglePointEnergy"><b>CalculateSinglePointEnergy</b></dt>
+<dd>
+<div class="OptionsBox">    CalculateSinglePointEnergy(psi4, Molecule, Method, BasisSet, ReturnWaveFunction = False, Quiet = False)</div>
+<p>Calculate single point electronic energy in Hartrees using a specified method and basis set.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (Object): Psi4 module reference.
+<br/>    Molecule (Object): Psi4 molecule object.
+<br/>    Method (str): A valid method name.
+<br/>    BasisSet (str): A valid basis set.
+<br/>    ReturnWaveFunction (boolean): Return wave function.
+<br/>    Quiet (boolean): Flag to print error message.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    float: Total electronic energy in Hartrees.
+<br/>    (float, psi4 object): Energy and wavefuction.</div>
+</dd>
+<dt id="GetAtomPositions"><b>GetAtomPositions</b></dt>
+<dd>
+<div class="OptionsBox">    GetAtomPositions(psi4, WaveFunction, InAngstroms = True)</div>
+<p>Retrieve a list of lists containing coordinates of all atoms in the molecule available in Psi4 wave function. By default, the atom positions are returned in Angstroms. The Psi4 default is Bohr.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (Object): Psi4 module reference.
+<br/>    WaveFunction (Object): Psi4 wave function reference.
+<br/>    InAngstroms (bool): True - Positions in Angstroms; Otherwise, in Bohr.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    None or list : List of lists containing atom positions.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    for AtomPosition in Psi4Util.GetAtomPositions(Psi4Handle, WaveFunction):
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        print(&quot;X: %s; Y: %s; Z: %s&quot; % (AtomPosition[0], AtomPosition[1],
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            AtomPosition[2]))</div>
+</dd>
+<dt id="InitializePsi4"><b>InitializePsi4</b></dt>
+<dd>
+<div class="OptionsBox">    InitializePsi4(Psi4RunParams = None,  Psi4OptionsParams = None, PrintVersion = False, PrintHeader = False)</div>
+<p>Import Psi4 module and configure it for running Psi4 jobs.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Psi4RunParams (dict): Runtime parameter name and value pairs.
+<br/>    Psi4OptionsParams (dict): Option name and value pairs. This is simply
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        passed to ps4.set_options().      
+<br/>    PrintVersion (boolean): Print version number.
+<br/>    PrintHeader (boolean): Print header information.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Object: Psi4 module reference.</div>
+</dd>
+<dt id="JoinMethodNameAndBasisSet"><b>JoinMethodNameAndBasisSet</b></dt>
+<dd>
+<div class="OptionsBox">    JoinMethodNameAndBasisSet(MethodName, BasisSet)</div>
+<p>Join method name and basis set using a backslash delimiter. An empty basis set specification is ignored.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MethodName (str): A valid method name.
+<br/>    BasisSet (str): A valid basis set or an empty string.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: MethodName/BasisSet or MethodName</div>
+</dd>
+<dt id="ListPsi4RunParamaters"><b>ListPsi4RunParamaters</b></dt>
+<dd>
+<div class="OptionsBox">    ListPsi4RunParamaters(psi4)</div>
+<p>List values for a key set of the following Psi4 runtime parameters: Memory, NumThreads, OutputFile, ScratchDir, DataDir.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (object): Psi4 module reference.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    None</div>
+</dd>
+<dt id="PerformGeometryOptimization"><b>PerformGeometryOptimization</b></dt>
+<dd>
+<div class="OptionsBox">    PerformGeometryOptimization(psi4, Molecule, Method, BasisSet, ReturnWaveFunction = True, Quiet = False)</div>
+<p>Perform geometry optimization using a specified method and basis set.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (Object): Psi4 module reference.
+<br/>    Molecule (Object): Psi4 molecule object.
+<br/>    Method (str): A valid method name.
+<br/>    BasisSet (str): A valid basis set.
+<br/>    ReturnWaveFunction (boolean): Return wave function.
+<br/>    Quiet (boolean): Flag to print error message.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    float: Total electronic energy in Hartrees.
+<br/>    (float, psi4 object): Energy and wavefuction.</div>
+</dd>
+<dt id="ProcessPsi4CubeFilesParameters"><b>ProcessPsi4CubeFilesParameters</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessPsi4CubeFilesParameters(ParamsOptionName, ParamsOptionValue, ParamsDefaultInfo = None)</div>
+<p>Process parameters for Psi4 runs and return a map containing processed parameter names and values.</p>
+<p>ParamsOptionValue is a comma delimited list of parameter name and value pairs for generating cube files.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<p>GridSpacing, 0.2, GridOverage, 4.0, IsoContourThreshold, 0.85</p>
+<p>GridSpacing: Units: Bohr. A higher value reduces the size of the cube files on the disk. This option corresponds to Psi4 option CUBIC_GRID_SPACING.</p>
+<p>GridOverage: Units: Bohr.This option corresponds to Psi4 option CUBIC_GRID_OVERAGE.</p>
+<div class="OptionsBox"> IsoContourThreshold captures specified percent of the probability density
+ using the least amount of grid points. This option corresponds to Psi4 option
+ CUBEPROP_ISOCONTOUR_THRESHOLD.</div>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ParamsOptionName (str): Command line Psi4 cube files option name.
+<br/>    ParamsOptionValues (str): Comma delimited list of parameter name and value pairs.
+<br/>    ParamsDefaultInfo (dict): Default values to override for selected parameters.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dictionary: Processed parameter name and value pairs.</div>
+</dd>
+<dt id="ProcessPsi4OptionsParameters"><b>ProcessPsi4OptionsParameters</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessPsi4OptionsParameters(ParamsOptionName, ParamsOptionValue)</div>
+<p>Process parameters for setting up Psi4 options and return a map containing processed parameter names and values.</p>
+<p>ParamsOptionValue is a comma delimited list of Psi4 option name and value pairs for setting global and module options. The names are &#39;option_name&#39; for global options and &#39;module_name__option_name&#39; for options local to a module. The specified option names must be valid Psi4 names. No validation is performed.</p>
+<p>The specified option name and value pairs are processed and passed to psi4.set_options() as a dictionary. The supported value types are float, integer, boolean, or string. The float value string is converted into a float. The valid values for a boolean string are yes, no, true, false, on, or off.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ParamsOptionName (str): Command line input parameters option name.
+<br/>    ParamsOptionValue (str): Comma delimited list of parameter name and value pairs.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dictionary: Processed parameter name and value pairs.</div>
+</dd>
+<dt id="ProcessPsi4RunParameters"><b>ProcessPsi4RunParameters</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessPsi4RunParameters(ParamsOptionName, ParamsOptionValue, InfileName = None, ParamsDefaultInfo = None)</div>
+<p>Process parameters for Psi4 runs and return a map containing processed parameter names and values.</p>
+<p>ParamsOptionValue a comma delimited list of parameter name and value pairs for configuring Psi4 jobs.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<p>MemoryInGB,1,NumThreads,1,OutputFile,auto,ScratchDir,auto, RemoveOutputFile,yes</p>
+<p>Possible values: OutputFile - stdout, quiet, or FileName; OutputFile - DirName; RemoveOutputFile - yes, no, true, or false</p>
+<p>These parameters control the runtime behavior of Psi4.</p>
+<p>The default for &#39;OutputFile&#39; is a file name &lt;InFileRoot&gt;_Psi4.out. The PID is appened the output file name during multiprocessing. The &#39;stdout&#39; value for &#39;OutputType&#39; sends Psi4 output to stdout. The &#39;quiet&#39; or &#39;devnull&#39; value suppresses all Psi4 output.</p>
+<p>The default &#39;Yes&#39; value of &#39;RemoveOutputFile&#39; option forces the removal of any existing Psi4 before creating new files to append output from multiple Psi4 runs.</p>
+<p>The option &#39;ScratchDir&#39; is a directory path to the location of scratch files. The default value corresponds to Psi4 default. It may be used to override the deafult path.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ParamsOptionName (str): Command line Psi4 run parameters option name.
+<br/>    ParamsOptionValues (str): Comma delimited list of parameter name and value pairs.
+<br/>    InfileName (str): Name of input file.
+<br/>    ParamsDefaultInfo (dict): Default values to override for selected parameters.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dictionary: Processed parameter name and value pairs.</div>
+<p>The parameter name and values specified in ParamsOptionValues are validated before returning them in a dictionary.</p>
+</dd>
+<dt id="RemoveScratchFiles"><b>RemoveScratchFiles</b></dt>
+<dd>
+<div class="OptionsBox">    RemoveScratchFiles(psi4, OutputFile, PID = None)</div>
+<p>Remove any leftover scratch files associated with the specified output file. The file specification, &lt;OutfileRoot&gt;.*&lt;PID&gt;.* is used to collect and remove files from the scratch directory. In addition, the file psi.&lt;PID&gt;.clean, in current directory is removed.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (object): psi4 module reference.
+<br/>    OutputFile (str): Output file name.
+<br/>    PID (int): Process ID or None.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    None</div>
+</dd>
+<dt id="RetrieveIsocontourRangeFromCubeFile"><b>RetrieveIsocontourRangeFromCubeFile</b></dt>
+<dd>
+<div class="OptionsBox">    RetrieveIsocontourRangeFromCubeFile(CubeFileName)</div>
+<p>Retrieve isocontour range values from the cube file. The range values are retrieved from the second line in the cube file after the string &#39;Isocontour range&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    CubeFileName (str): Cube file name.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    float: Minimum range value.
+<br/>    float: Maximum range value.</div>
+</dd>
+<dt id="RetrieveMinAndMaxValueFromCubeFile"><b>RetrieveMinAndMaxValueFromCubeFile</b></dt>
+<dd>
+<div class="OptionsBox">    RetrieveMinAndMaxValueFromCubeFile(CubeFileName)</div>
+<p>Retrieve minimum and maxmimum grid values from the cube file.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    CubeFileName (str): Cube file name.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    float: Minimum value.
+<br/>    float: Maximum value.</div>
+</dd>
+<dt id="UpdatePsi4OptionsParameters"><b>UpdatePsi4OptionsParameters</b></dt>
+<dd>
+<div class="OptionsBox">    UpdatePsi4OptionsParameters(psi4, OptionsInfo)</div>
+<p>Update Psi4 options using psi4.set_options().</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (object): Psi4 module reference.
+<br/>    OptionsInfo (dictionary) : Option name and value pairs for setting
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        global and module options.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    None</div>
+</dd>
+<dt id="UpdatePsi4OutputFileUsingPID"><b>UpdatePsi4OutputFileUsingPID</b></dt>
+<dd>
+<div class="OptionsBox">    UpdatePsi4OutputFileUsingPID(OutputFile, PID = None)</div>
+<p>Append PID to output file name. The PID is automatically retrieved during None value of PID.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    OutputFile (str): Output file name.
+<br/>    PID (int): Process ID or None.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: Update output file name. Format: &lt;OutFieRoot&gt;_&lt;PID&gt;.&lt;OutFileExt&gt;</div>
+</dd>
+<dt id="UpdatePsi4RunParameters"><b>UpdatePsi4RunParameters</b></dt>
+<dd>
+<div class="OptionsBox">    UpdatePsi4RunParameters(psi4, RunParamsInfo)</div>
+<p>Update Psi4 runtime parameters. The supported parameter names along with their default values are as follows: MemoryInGB: 1; NumThreads: 1, OutputFile: stdout; ScratchDir: auto; RemoveOutputFile: True.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    psi4 (object): Psi4 module reference.
+<br/>    RunParamsInfo (dictionary) : Parameter name and value pairs for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        configuring Psi4 jobs.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    None</div>
+</dd>
+</dl>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this file is implemented using Psi4, an open source quantum chemistry software package.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./MiscUtil.py.html" title="MiscUtil.py.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLUtil.py.html" title="PyMOLUtil.py.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>Python/Psi4Util.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

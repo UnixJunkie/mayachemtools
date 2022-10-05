@@ -1,0 +1,866 @@
+<html>
+<head>
+<title>MayaChemTools:Code:RDKitStandardizeMolecules.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: RDKitStandardizeMolecules.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2022 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using RDKit, an</span>
+   9 <span class="c1"># open source toolkit for cheminformatics developed by Greg Landrum.</span>
+  10 <span class="c1">#</span>
+  11 <span class="c1"># This file is part of MayaChemTools.</span>
+  12 <span class="c1">#</span>
+  13 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  14 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  15 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  16 <span class="c1"># later version.</span>
+  17 <span class="c1">#</span>
+  18 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  19 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  20 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  21 <span class="c1"># details.</span>
+  22 <span class="c1">#</span>
+  23 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  24 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  25 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  26 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  27 <span class="c1">#</span>
+  28 
+  29 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  30 
+  31 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  32 <span class="kn">import</span> <span class="nn">os</span>
+  33 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  34 <span class="kn">import</span> <span class="nn">time</span>
+  35 <span class="kn">import</span> <span class="nn">re</span>
+  36 <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+  37 
+  38 <span class="c1"># RDKit imports...</span>
+  39 <span class="k">try</span><span class="p">:</span>
+  40     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">rdBase</span>
+  41     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+  42     <span class="kn">from</span> <span class="nn">rdkit.Chem.MolStandardize</span> <span class="kn">import</span> <span class="n">rdMolStandardize</span>
+  43     <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+  44 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  45     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import RDKit module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  46     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your RDKit environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  47     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  48 
+  49 <span class="c1"># MayaChemTools imports...</span>
+  50 <span class="k">try</span><span class="p">:</span>
+  51     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  52     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  53     <span class="kn">import</span> <span class="nn">RDKitUtil</span>
+  54 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  55     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  56     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  57     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  58 
+  59 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  60 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  61 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  62 
+  63 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  64     <span class="sd">&quot;&quot;&quot;Start execution of the script.&quot;&quot;&quot;</span>
+  65     
+  66     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (RDKit v</span><span class="si">%s</span><span class="s2">; MayaChemTools v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">): Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">rdBase</span><span class="o">.</span><span class="n">rdkitVersion</span><span class="p">,</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetMayaChemToolsVersion</span><span class="p">(),</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  67     
+  68     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  69     
+  70     <span class="c1"># Retrieve command line arguments and options...</span>
+  71     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  72     
+  73     <span class="c1"># Process and validate command line arguments and options...</span>
+  74     <span class="n">ProcessOptions</span><span class="p">()</span>
+  75     
+  76     <span class="c1"># Perform actions required by the script...</span>
+  77     <span class="n">StandardizeMolecules</span><span class="p">()</span>
+  78     
+  79     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  80     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  81 
+  82 <span class="k">def</span> <span class="nf">StandardizeMolecules</span><span class="p">():</span>
+  83     <span class="sd">&quot;&quot;&quot;Stanardize molecules.&quot;&quot;&quot;</span>
+  84     
+  85     <span class="c1"># Setup a molecule reader...</span>
+  86     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+  87     <span class="n">Mols</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadMolecules</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+  88     
+  89     <span class="c1"># Set up a molecule writer...</span>
+  90     <span class="n">Writer</span> <span class="o">=</span> <span class="n">SetupMoleculeWriter</span><span class="p">()</span>
+  91 
+  92     <span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">StandardizationFailedCount</span> <span class="o">=</span> <span class="n">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  93 
+  94     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  95         <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+  96     
+  97     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolCount</span><span class="p">)</span>
+  98     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ValidMolCount</span><span class="p">)</span>
+  99     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of molecules failed during standardization: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">StandardizationFailedCount</span><span class="p">)</span>
+ 100     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolCount</span> <span class="o">-</span> <span class="n">ValidMolCount</span> <span class="o">+</span> <span class="n">StandardizationFailedCount</span><span class="p">))</span>
+ 101     
+ 102     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of standardized molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ValidMolCount</span> <span class="o">-</span> <span class="n">StandardizationFailedCount</span><span class="p">))</span>
+ 103 
+ 104 <span class="k">def</span> <span class="nf">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 105     <span class="sd">&quot;&quot;&quot;Process and standardize molecules.&quot;&quot;&quot;</span>
+ 106 
+ 107     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]:</span>
+ 108         <span class="k">return</span> <span class="n">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 109     <span class="k">else</span><span class="p">:</span>
+ 110         <span class="k">return</span> <span class="n">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 111 
+ 112 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span>  <span class="n">Writer</span><span class="p">):</span>
+ 113     <span class="sd">&quot;&quot;&quot;Process and standardize molecules using a single process.&quot;&quot;&quot;</span>
+ 114 
+ 115     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Standardizing molecules...&quot;</span><span class="p">)</span>
+ 116     
+ 117     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+ 118     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span>
+ 119 
+ 120     <span class="c1"># Set up standardize...</span>
+ 121     <span class="n">SetupStandardize</span><span class="p">()</span>
+ 122 
+ 123     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">StandardizationFailedCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+ 124     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+ 125     <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+ 126         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 127         
+ 128         <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 129             <span class="k">continue</span>
+ 130         
+ 131         <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 132             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 133                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 134                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 135             <span class="k">continue</span>
+ 136         
+ 137         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 138         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+ 139             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+ 140             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+ 141                 <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 142         
+ 143         <span class="n">StandardizedMol</span><span class="p">,</span>  <span class="n">StandardizationStatus</span> <span class="o">=</span> <span class="n">PerformStandardization</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 144         <span class="k">if</span> <span class="ow">not</span> <span class="n">StandardizationStatus</span><span class="p">:</span>
+ 145             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 146                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 147                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to standardize molecule </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 148             
+ 149             <span class="n">StandardizationFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 150             <span class="k">continue</span>
+ 151         
+ 152         <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">StandardizedMol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+ 153     
+ 154     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">StandardizationFailedCount</span><span class="p">)</span>
+ 155     
+ 156 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 157     <span class="sd">&quot;&quot;&quot;Process and standardize molecules using  multiprocessing.&quot;&quot;&quot;</span>
+ 158     
+ 159     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Standardize molecules using multiprocessing...&quot;</span><span class="p">)</span>
+ 160     
+ 161     <span class="n">MPParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span>
+ 162     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+ 163     
+ 164     <span class="c1"># Setup data for initializing a worker process...</span>
+ 165     <span class="n">InitializeWorkerProcessArgs</span> <span class="o">=</span> <span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">Options</span><span class="p">),</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">))</span>
+ 166 
+ 167     <span class="c1"># Setup a encoded mols data iterable for a worker process by pickling only public</span>
+ 168     <span class="c1"># and private molecule properties...</span>
+ 169     <span class="n">WorkerProcessDataIterable</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GenerateBase64EncodedMolStrings</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+ 170 
+ 171     <span class="c1"># Setup process pool along with data initialization for each process...</span>
+ 172     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Configuring multiprocessing using </span><span class="si">%s</span><span class="s2"> method...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;mp.Pool.imap()&quot;</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;mp.Pool.map()&quot;</span><span class="p">))</span>
+ 173     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;NumProcesses: </span><span class="si">%s</span><span class="s2">; InputDataMode: </span><span class="si">%s</span><span class="s2">; ChunkSize: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="p">(</span><span class="s2">&quot;automatic&quot;</span> <span class="k">if</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])))</span>
+ 174     
+ 175     <span class="n">ProcessPool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">InitializeWorkerProcess</span><span class="p">,</span> <span class="n">InitializeWorkerProcessArgs</span><span class="p">)</span>
+ 176     
+ 177     <span class="c1"># Start processing...</span>
+ 178     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 179         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+ 180     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^InMemory$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 181         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+ 182     <span class="k">else</span><span class="p">:</span>
+ 183         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The value, </span><span class="si">%s</span><span class="s2">, specified for </span><span class="se">\&quot;</span><span class="s2">--inputDataMode</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">]))</span>
+ 184     
+ 185     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span>
+ 186     
+ 187     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">StandardizationFailedCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+ 188     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+ 189     <span class="k">for</span> <span class="n">Result</span> <span class="ow">in</span> <span class="n">Results</span><span class="p">:</span>
+ 190         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 191         <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">StandardizationStatus</span> <span class="o">=</span> <span class="n">Result</span>
+ 192         
+ 193         <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 194             <span class="k">continue</span>
+ 195         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 196         
+ 197         <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+ 198         
+ 199         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+ 200             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+ 201             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+ 202                 <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 203         
+ 204         <span class="k">if</span> <span class="ow">not</span> <span class="n">StandardizationStatus</span><span class="p">:</span>
+ 205             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 206                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 207                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to standardize molecule </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 208             
+ 209             <span class="n">StandardizationFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 210             <span class="k">continue</span>
+ 211         
+ 212         <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+ 213     
+ 214     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">StandardizationFailedCount</span><span class="p">)</span>
+ 215 
+ 216 <span class="k">def</span> <span class="nf">InitializeWorkerProcess</span><span class="p">(</span><span class="o">*</span><span class="n">EncodedArgs</span><span class="p">):</span>
+ 217     <span class="sd">&quot;&quot;&quot;Initialize data for a worker process.&quot;&quot;&quot;</span>
+ 218 
+ 219     <span class="k">global</span> <span class="n">Options</span><span class="p">,</span> <span class="n">OptionsInfo</span>
+ 220     
+ 221     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Starting process (PID: </span><span class="si">%s</span><span class="s2">)...&quot;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+ 222 
+ 223     <span class="c1"># Decode Options and OptionInfo...</span>
+ 224     <span class="n">Options</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+ 225     <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+ 226 
+ 227     <span class="c1"># Set up standardize...</span>
+ 228     <span class="n">SetupStandardize</span><span class="p">()</span>
+ 229 
+ 230 <span class="k">def</span> <span class="nf">WorkerProcess</span><span class="p">(</span><span class="n">EncodedMolInfo</span><span class="p">):</span>
+ 231     <span class="sd">&quot;&quot;&quot;Process data for a worker process.&quot;&quot;&quot;</span>
+ 232     
+ 233     <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span> <span class="o">=</span> <span class="n">EncodedMolInfo</span>
+ 234     
+ 235     <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 236         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
+ 237         
+ 238     <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+ 239     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 240         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 241             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 242             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 243         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
+ 244     
+ 245     <span class="n">Mol</span><span class="p">,</span> <span class="n">StandardizationStatus</span> <span class="o">=</span> <span class="n">PerformStandardization</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 246     <span class="n">EncodedMol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">MolProps</span> <span class="o">|</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">PrivateProps</span><span class="p">)</span>
+ 247     
+ 248     <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">StandardizationStatus</span><span class="p">]</span>
+ 249     
+ 250 <span class="k">def</span> <span class="nf">PerformStandardization</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">):</span>
+ 251     <span class="sd">&quot;&quot;&quot;Perform standardization and return a standardized mol along with the status of</span>
+ 252 <span class="sd">    the standardization.&quot;&quot;&quot;</span>
+ 253 
+ 254     <span class="k">try</span><span class="p">:</span>
+ 255         <span class="c1"># Step 1: Cleanup...</span>
+ 256         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;Cleanup&quot;</span><span class="p">]:</span>
+ 257             <span class="n">Mol</span> <span class="o">=</span> <span class="n">CleanupMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 258         
+ 259         <span class="c1"># Step2: Get largest fragment...</span>
+ 260         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;RemoveFragments&quot;</span><span class="p">]:</span>
+ 261             <span class="n">Mol</span> <span class="o">=</span> <span class="n">ChooseLargestMoleculeFragment</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 262         
+ 263         <span class="c1"># Step3: Neutralize...</span>
+ 264         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;Neutralize&quot;</span><span class="p">]:</span>
+ 265             <span class="n">Mol</span> <span class="o">=</span> <span class="n">NeutralizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 266         
+ 267         <span class="c1"># Step4: Canonicalize tautomer...</span>
+ 268         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;CanonicalizeTautomer&quot;</span><span class="p">]:</span>
+ 269             <span class="n">Mol</span> <span class="o">=</span> <span class="n">CanonicalizeMoleculeTautomer</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 270         
+ 271         <span class="n">Status</span> <span class="o">=</span> <span class="bp">True</span>
+ 272     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+ 273         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 274             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to standardize molecule </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">),</span> <span class="n">ErrMsg</span><span class="p">))</span>
+ 275         <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span>
+ 276 
+ 277     <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">Status</span><span class="p">)</span>
+ 278 
+ 279 <span class="k">def</span> <span class="nf">CleanupMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 280     <span class="sd">&quot;&quot;&quot;Clean up molecule.&quot;&quot;&quot;</span>
+ 281     
+ 282     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupRemoveHydrogens&quot;</span><span class="p">]:</span>
+ 283         <span class="n">Mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RemoveHs</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 284         
+ 285     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupDisconnectMetals&quot;</span><span class="p">]:</span>
+ 286         <span class="c1"># Disconnect metal atoms that are defined as covalently bonded to non-metals...</span>
+ 287         <span class="n">Mol</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;MetalDisconnector&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">Disconnect</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 288     
+ 289     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupNormalize&quot;</span><span class="p">]:</span>
+ 290         <span class="c1"># Apply normalization transforms to correct functional groups and recombine charges...</span>
+ 291         <span class="n">Mol</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CleanupParams&quot;</span><span class="p">])</span>
+ 292     
+ 293     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupReionize&quot;</span><span class="p">]:</span>
+ 294         <span class="c1"># Ensure the strongest acid groups ionize first in partially ionized molecules...</span>
+ 295         <span class="n">Mol</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">Reionize</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CleanupParams&quot;</span><span class="p">])</span>
+ 296     
+ 297     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupAssignStereo&quot;</span><span class="p">]:</span>
+ 298         <span class="c1"># Assign stereochemistry</span>
+ 299         <span class="n">Chem</span><span class="o">.</span><span class="n">AssignStereochemistry</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupAssignStereoForce&quot;</span><span class="p">],</span> <span class="n">cleanIt</span><span class="o">=</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupAssignStereoCleanIt&quot;</span><span class="p">])</span>
+ 300     
+ 301     <span class="n">Mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+ 302 
+ 303     <span class="k">return</span> <span class="n">Mol</span>
+ 304 
+ 305 <span class="k">def</span> <span class="nf">ChooseLargestMoleculeFragment</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 306     <span class="sd">&quot;&quot;&quot;Choose largest molecule fragment. &quot;&quot;&quot;</span>
+ 307 
+ 308     <span class="k">return</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;LargestFragmentChooser&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">choose</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 309 
+ 310 <span class="k">def</span> <span class="nf">NeutralizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 311     <span class="sd">&quot;&quot;&quot;Neutralize molecule.&quot;&quot;&quot;</span>
+ 312     
+ 313     <span class="k">return</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;Uncharger&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uncharge</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 314 
+ 315 <span class="k">def</span> <span class="nf">CanonicalizeMoleculeTautomer</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 316     <span class="sd">&quot;&quot;&quot;Canonicalize molecule tautomer.&quot;&quot;&quot;</span>
+ 317     
+ 318     <span class="k">return</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;TautomerEnumerator&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">Canonicalize</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 319 
+ 320 <span class="k">def</span> <span class="nf">SetupStandardize</span><span class="p">():</span>
+ 321     <span class="sd">&quot;&quot;&quot;Setup RDKit standardize objects to perform standardization.&quot;&quot;&quot;</span>
+ 322 
+ 323     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+ 324     
+ 325     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CleanupParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SetupStandardizeCleanupParameters</span><span class="p">()</span>
+ 326     
+ 327     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;Cleanup&quot;</span><span class="p">]:</span>
+ 328         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="s2">&quot;CleanupDisconnectMetals&quot;</span><span class="p">]:</span>
+ 329             <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;MetalDisconnector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">MetalDisconnector</span><span class="p">()</span>
+ 330     
+ 331     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;RemoveFragments&quot;</span><span class="p">]:</span>
+ 332         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;LargestFragmentChooser&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">LargestFragmentChooser</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CleanupParams&quot;</span><span class="p">])</span>
+ 333     
+ 334     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;Neutralize&quot;</span><span class="p">]:</span>
+ 335         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;Uncharger&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">Uncharger</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CleanupParams&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">doCanonical</span><span class="p">)</span>
+ 336 
+ 337     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">][</span><span class="s2">&quot;CanonicalizeTautomer&quot;</span><span class="p">]:</span>
+ 338         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeObjects&quot;</span><span class="p">][</span><span class="s2">&quot;TautomerEnumerator&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">TautomerEnumerator</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CleanupParams&quot;</span><span class="p">])</span>
+ 339 
+ 340 <span class="k">def</span> <span class="nf">SetupStandardizeCleanupParameters</span><span class="p">():</span>
+ 341     <span class="sd">&quot;&quot;&quot;Setup standardize clean up parameters for RDKit. &quot;&quot;&quot;</span>
+ 342 
+ 343     <span class="n">CleanupParams</span> <span class="o">=</span> <span class="n">rdMolStandardize</span><span class="o">.</span><span class="n">CleanupParameters</span><span class="p">()</span>
+ 344     <span class="n">StandardizeParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">]</span>
+ 345     
+ 346     <span class="k">if</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;AcidBaseFile&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 347         <span class="n">CleanupParams</span><span class="o">.</span><span class="n">acidbaseFile</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;AcidBaseFile&quot;</span><span class="p">]</span>
+ 348     <span class="k">if</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;FragmentFile&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 349         <span class="n">CleanupParams</span><span class="o">.</span><span class="n">acidbaseFile</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;FragmentFile&quot;</span><span class="p">]</span>
+ 350     <span class="k">if</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;NormalizationsFile&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 351         <span class="n">CleanupParams</span><span class="o">.</span><span class="n">normalizationsFile</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;NormalizationsFile&quot;</span><span class="p">]</span>
+ 352     <span class="k">if</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;TautomerTransformsFile&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 353         <span class="n">CleanupParams</span><span class="o">.</span><span class="n">tautomerTransformsFile</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;TautomerTransformsFile&quot;</span><span class="p">]</span>
+ 354     
+ 355     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">maxRestarts</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;CleanupNormalizeMaxRestarts&quot;</span><span class="p">]</span>
+ 356     
+ 357     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">doCanonical</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;DoCanonical&quot;</span><span class="p">]</span>
+ 358     
+ 359     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">largestFragmentChooserUseAtomCount</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;LargestFragmentChooserUseAtomCount&quot;</span><span class="p">]</span>
+ 360     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">largestFragmentChooserCountHeavyAtomsOnly</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;LargestFragmentChooserCountHeavyAtomsOnly&quot;</span><span class="p">]</span>
+ 361     
+ 362     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">preferOrganic</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;PreferOrganic&quot;</span><span class="p">]</span>
+ 363     
+ 364     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">maxTautomers</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;MaxTautomers&quot;</span><span class="p">]</span>
+ 365     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">maxTransforms</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;MaxTransforms&quot;</span><span class="p">]</span>
+ 366     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">tautomerRemoveBondStereo</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;TautomerRemoveBondStereo&quot;</span><span class="p">]</span>
+ 367     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">tautomerRemoveIsotopicHs</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;TautomerRemoveIsotopicHs&quot;</span><span class="p">]</span>
+ 368     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">tautomerRemoveSp3Stereo</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;TautomerRemoveSp3Stereo&quot;</span><span class="p">]</span>
+ 369     <span class="n">CleanupParams</span><span class="o">.</span><span class="n">tautomerReassignStereo</span> <span class="o">=</span> <span class="n">StandardizeParams</span><span class="p">[</span><span class="s2">&quot;TautomerReassignStereo&quot;</span><span class="p">]</span>
+ 370     
+ 371     <span class="k">return</span> <span class="n">CleanupParams</span>
+ 372 
+ 373 <span class="k">def</span> <span class="nf">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">):</span>
+ 374     <span class="sd">&quot;&quot;&quot;Write out molecule.&quot;&quot;&quot;</span>
+ 375     
+ 376     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]:</span>
+ 377         <span class="k">return</span>
+ 378     
+ 379     <span class="k">if</span> <span class="n">Compute2DCoords</span><span class="p">:</span>
+ 380         <span class="n">AllChem</span><span class="o">.</span><span class="n">Compute2DCoords</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 381     
+ 382     <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 383 
+ 384 <span class="k">def</span> <span class="nf">SetupMoleculeWriter</span><span class="p">():</span>
+ 385     <span class="sd">&quot;&quot;&quot;Setup a molecule writer.&quot;&quot;&quot;</span>
+ 386     
+ 387     <span class="n">Writer</span> <span class="o">=</span> <span class="bp">None</span>
+ 388     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]:</span>
+ 389         <span class="k">return</span> <span class="n">Writer</span>
+ 390 
+ 391     <span class="n">Writer</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+ 392     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 393         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 394     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 395     
+ 396     <span class="k">return</span> <span class="n">Writer</span>
+ 397 
+ 398 <span class="k">def</span> <span class="nf">ProcessMethodologyParameters</span><span class="p">():</span>
+ 399     <span class="sd">&quot;&quot;&quot;Process methodology parameters. &quot;&quot;&quot;</span>
+ 400 
+ 401     <span class="n">ParamsDefaultInfo</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Cleanup&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;RemoveFragments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;Neutralize&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CanonicalizeTautomer&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">]}</span>
+ 402     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodologyParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionNameValuePairParameters</span><span class="p">(</span><span class="s2">&quot;--methodologyParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--methodologyParams&quot;</span><span class="p">],</span> <span class="n">ParamsDefaultInfo</span><span class="p">)</span>
+ 403     
+ 404 <span class="k">def</span> <span class="nf">ProcessStandardizationParameters</span><span class="p">():</span>
+ 405     <span class="sd">&quot;&quot;&quot;Process standardization parameters. &quot;&quot;&quot;</span>
+ 406 
+ 407     <span class="n">ParamsDefaultInfo</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;AcidBaseFile&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span> <span class="s2">&quot;FragmentFile&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span> <span class="s2">&quot;NormalizationsFile&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span> <span class="s2">&quot;TautomerTransformsFile&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span> <span class="s2">&quot;CleanupRemoveHydrogens&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CleanupDisconnectMetals&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CleanupNormalize&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CleanupNormalizeMaxRestarts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span> <span class="s2">&quot;CleanupReionize&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CleanupAssignStereo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CleanupAssignStereoCleanIt&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;CleanupAssignStereoForce&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;DoCanonical&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;LargestFragmentChooserUseAtomCount&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;LargestFragmentChooserCountHeavyAtomsOnly&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span> <span class="s2">&quot;PreferOrganic&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">False</span><span class="p">],</span> <span class="s2">&quot;MaxTautomers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span> <span class="s2">&quot;MaxTransforms&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span> <span class="s2">&quot;TautomerRemoveBondStereo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;TautomerRemoveIsotopicHs&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;TautomerRemoveSp3Stereo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">],</span> <span class="s2">&quot;TautomerReassignStereo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bool&quot;</span><span class="p">,</span> <span class="bp">True</span><span class="p">]}</span>
+ 408 
+ 409     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionNameValuePairParameters</span><span class="p">(</span><span class="s2">&quot;--standardizeParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--standardizeParams&quot;</span><span class="p">],</span> <span class="n">ParamsDefaultInfo</span><span class="p">)</span>
+ 410     
+ 411     <span class="c1">#  Validate numerical values...</span>
+ 412     <span class="k">for</span> <span class="n">ParamName</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;CleanupNormalizeMaxRestarts&quot;</span><span class="p">,</span> <span class="s2">&quot;MaxTautomers&quot;</span><span class="p">,</span> <span class="s2">&quot;MaxTransforms&quot;</span><span class="p">]:</span>
+ 413         <span class="n">ParamValue</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;StandardizeParams&quot;</span><span class="p">][</span><span class="n">ParamName</span><span class="p">]</span>
+ 414         <span class="k">if</span>  <span class="n">ParamValue</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+ 415             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The parameter value, </span><span class="si">%s</span><span class="s2">, specified for parameter name, </span><span class="si">%s</span><span class="s2">, using </span><span class="se">\&quot;</span><span class="s2">-s, --standardizeParams</span><span class="se">\&quot;</span><span class="s2"> option is not a valid value. Supported values: &gt; 0&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ParamValue</span><span class="p">,</span> <span class="n">ParamName</span><span class="p">))</span>
+ 416 
+ 417 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 418     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options.&quot;&quot;&quot;</span>
+ 419     
+ 420     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 421 
+ 422     <span class="c1"># Validate options...</span>
+ 423     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 424     
+ 425     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+ 426     <span class="n">ParamsDefaultInfoOverride</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;RemoveHydrogens&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}</span>
+ 427     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionInfileParameters</span><span class="p">(</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="n">ParamsDefaultInfo</span> <span class="o">=</span> <span class="n">ParamsDefaultInfoOverride</span><span class="p">)</span>
+ 428     
+ 429     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 430     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionOutfileParameters</span><span class="p">(</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 431 
+ 432     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 433 
+ 434     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+ 435     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^count$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 436         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+ 437     
+ 438     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 439     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionMultiprocessingParameters</span><span class="p">(</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">])</span>
+ 440 
+ 441     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 442 
+ 443     <span class="n">ProcessMethodologyParameters</span><span class="p">()</span>
+ 444     <span class="n">ProcessStandardizationParameters</span><span class="p">()</span>
+ 445 
+ 446 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span>
+ 447     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options.&quot;&quot;&quot;</span>
+ 448     
+ 449     <span class="c1"># Get options...</span>
+ 450     <span class="k">global</span> <span class="n">Options</span>
+ 451     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 452     
+ 453     <span class="c1"># Set current working directory to the specified directory...</span>
+ 454     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 455     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 456         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 457     
+ 458     <span class="c1"># Handle examples option...</span>
+ 459     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 460         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 461         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 462 
+ 463 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 464     <span class="sd">&quot;&quot;&quot;Validate option values.&quot;&quot;&quot;</span>
+ 465 
+ 466     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 467     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd mol smi txt csv tsv&quot;</span><span class="p">)</span>
+ 468     
+ 469     <span class="k">if</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]:</span>
+ 470         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd smi&quot;</span><span class="p">)</span>
+ 471         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 472         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 473 
+ 474     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="s2">&quot;standardize count&quot;</span><span class="p">)</span>
+ 475     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^standardize$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 476         <span class="k">if</span> <span class="ow">not</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]:</span>
+ 477             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The outfile must be specified using </span><span class="se">\&quot;</span><span class="s2">-o, --outfile</span><span class="se">\&quot;</span><span class="s2"> during </span><span class="se">\&quot;</span><span class="s2">standardize</span><span class="se">\&quot;</span><span class="s2"> value of </span><span class="se">\&quot;</span><span class="s2">--mode</span><span class="se">\&quot;</span><span class="s2"> option&quot;</span><span class="p">)</span>
+ 478     
+ 479     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mp&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 480     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-q, --quiet&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 481     
+ 482 <span class="c1"># Setup a usage string for docopt...</span>
+ 483 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 484 <span class="s2">RDKitStandardizeMolecules.py - Standardize molecules</span>
+ 485 
+ 486 <span class="s2">Usage:</span>
+ 487 <span class="s2">    RDKitStandardizeMolecules.py [--infileParams &lt;Name,Value,...&gt;] [--methodologyParams &lt;Name,Value,...&gt;]</span>
+ 488 <span class="s2">                                 [--mode &lt;standardize or count&gt;] [--mp &lt;yes or no&gt;] [--mpParams &lt;Name,Value,...&gt;]</span>
+ 489 <span class="s2">                                 [--outfileParams &lt;Name,Value,...&gt; ] [--overwrite] [--standardizeParams &lt;Name,Value,...&gt;]</span>
+ 490 <span class="s2">                                 [--quiet &lt;yes or no&gt;] [-w &lt;dir&gt;] [-o &lt;outfile&gt;] -i &lt;infile&gt;</span>
+ 491 <span class="s2">    RDKitStandardizeMolecules.py -h | --help | -e | --examples</span>
+ 492 
+ 493 <span class="s2">Description:</span>
+ 494 <span class="s2">    Standardize molecules and write them out to an output file or simply count</span>
+ 495 <span class="s2">    the number of molecules to be standardized. The standardization methodology</span>
+ 496 <span class="s2">    consists of the following 4 steps executed in a sequential manner:</span>
+ 497 <span class="s2">        </span>
+ 498 <span class="s2">        1. Cleanup molecules</span>
+ 499 <span class="s2">        2. Keep largest fragment</span>
+ 500 <span class="s2">        3. Neutralize molecules</span>
+ 501 <span class="s2">        4. Select canonical tautomer</span>
+ 502 <span class="s2">        </span>
+ 503 <span class="s2">    The molecules are cleaned up by performing the following actions:</span>
+ 504 <span class="s2">        </span>
+ 505 <span class="s2">        1. Remove hydrogens</span>
+ 506 <span class="s2">        2. Disconnect metal atoms - Disconnect metal atoms covalently bonded</span>
+ 507 <span class="s2">            to non-metals</span>
+ 508 <span class="s2">        3. Normalize - Normalize functional groups and recombine charges</span>
+ 509 <span class="s2">        4. Reionize - Ionize strongest acid groups first in partially</span>
+ 510 <span class="s2">            ionized molecules</span>
+ 511 <span class="s2">        5. Assign stereochemistry</span>
+ 512 <span class="s2">        </span>
+ 513 <span class="s2">    You may optionally skip any cleanup action during standardization.</span>
+ 514 
+ 515 <span class="s2">    The supported input file formats are: SD (.sdf, .sd), SMILES (.smi., csv, .tsv, .txt)</span>
+ 516 
+ 517 <span class="s2">    The supported output file formats are: SD (.sdf, .sd), SMILES (.smi)</span>
+ 518 
+ 519 <span class="s2">Options:</span>
+ 520 <span class="s2">    -e, --examples</span>
+ 521 <span class="s2">        Print examples.</span>
+ 522 <span class="s2">    -h, --help</span>
+ 523 <span class="s2">        Print this help message.</span>
+ 524 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+ 525 <span class="s2">        Input file name.</span>
+ 526 <span class="s2">    --infileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 527 <span class="s2">        A comma delimited list of parameter name and value pairs for reading</span>
+ 528 <span class="s2">        molecules from files. The supported parameter names for different file</span>
+ 529 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 530 <span class="s2">            </span>
+ 531 <span class="s2">            SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes</span>
+ 532 <span class="s2">            SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,</span>
+ 533 <span class="s2">                smilesTitleLine,auto,sanitize,yes</span>
+ 534 <span class="s2">            </span>
+ 535 <span class="s2">        Possible values for smilesDelimiter: space, comma or tab.</span>
+ 536 <span class="s2">    -m, --mode &lt;standardize or count&gt;  [default: standardize]</span>
+ 537 <span class="s2">        Specify whether to standardize molecules and write them out or simply</span>
+ 538 <span class="s2">        count the number of molecules being standardized.</span>
+ 539 <span class="s2">    --methodologyParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 540 <span class="s2">        A comma delimited list of parameter name and value pairs to control</span>
+ 541 <span class="s2">        the execution of different steps in the standardization methodology. The</span>
+ 542 <span class="s2">        supported parameter names along with their default values are shown</span>
+ 543 <span class="s2">        below:</span>
+ 544 <span class="s2">            </span>
+ 545 <span class="s2">            cleanup,yes,removeFragments,yes,neutralize,yes,</span>
+ 546 <span class="s2">            canonicalizeTautomer,yes</span>
+ 547 <span class="s2">            </span>
+ 548 <span class="s2">        The standardization methodology consists of the following 4 steps executed</span>
+ 549 <span class="s2">        in a sequential manner starting from step 1:</span>
+ 550 <span class="s2">            </span>
+ 551 <span class="s2">            1. cleanup</span>
+ 552 <span class="s2">            2. removeFragments</span>
+ 553 <span class="s2">            3. neutralize</span>
+ 554 <span class="s2">            4. canonicalizeTautomer</span>
+ 555 <span class="s2">            </span>
+ 556 <span class="s2">        You may optionally skip the execution of any standardization step.</span>
+ 557 <span class="s2">        </span>
+ 558 <span class="s2">        The step1, cleanup, performs the following actions:</span>
+ 559 <span class="s2">            </span>
+ 560 <span class="s2">            1. Remove hydrogens</span>
+ 561 <span class="s2">            2. Disconnect metal atoms - Disconnect metal atoms covalently bonded</span>
+ 562 <span class="s2">                to non-metals</span>
+ 563 <span class="s2">            3. Normalize - Normalize functional groups and recombine charges</span>
+ 564 <span class="s2">            4. Reionize - Ionize strongest acid groups first in partially</span>
+ 565 <span class="s2">                ionized molecules</span>
+ 566 <span class="s2">            5. Assign stereochemistry</span>
+ 567 <span class="s2">            </span>
+ 568 <span class="s2">        You may optionally skip any cleanup action using &#39;-s, --standardize&#39; option.</span>
+ 569 <span class="s2">        </span>
+ 570 <span class="s2">        The step2, removeFragments, employs rdMolStandardize.FragmentParent()</span>
+ 571 <span class="s2">        function to keep the largest fragment.</span>
+ 572 <span class="s2">        </span>
+ 573 <span class="s2">        The step3, neutralize, uses rdMolStandardize.Uncharger().uncharge()</span>
+ 574 <span class="s2">        function to neutralize molecules by adding/removing hydrogens.</span>
+ 575 <span class="s2">        </span>
+ 576 <span class="s2">        The step4, canonicalizeTautomer, relies on Canonicalize() function availabe via</span>
+ 577 <span class="s2">        rdMolStandardize.TautomerEnumerator() to select a canonical tautomer.</span>
+ 578 <span class="s2">    --mp &lt;yes or no&gt;  [default: no]</span>
+ 579 <span class="s2">        Use multiprocessing.</span>
+ 580 <span class="s2">         </span>
+ 581 <span class="s2">        By default, input data is retrieved in a lazy manner via mp.Pool.imap()</span>
+ 582 <span class="s2">        function employing lazy RDKit data iterable. This allows processing of</span>
+ 583 <span class="s2">        arbitrary large data sets without any additional requirements memory.</span>
+ 584 <span class="s2">        </span>
+ 585 <span class="s2">        All input data may be optionally loaded into memory by mp.Pool.map()</span>
+ 586 <span class="s2">        before starting worker processes in a process pool by setting the value</span>
+ 587 <span class="s2">        of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</span>
+ 588 <span class="s2">        </span>
+ 589 <span class="s2">        A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input</span>
+ 590 <span class="s2">        data mode may adversely impact the performance. The &#39;--mpParams&#39; section</span>
+ 591 <span class="s2">        provides additional information to tune the value of &#39;chunkSize&#39;.</span>
+ 592 <span class="s2">    --mpParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 593 <span class="s2">        A comma delimited list of parameter name and value pairs to configure</span>
+ 594 <span class="s2">        multiprocessing.</span>
+ 595 <span class="s2">        </span>
+ 596 <span class="s2">        The supported parameter names along with their default and possible</span>
+ 597 <span class="s2">        values are shown below:</span>
+ 598 <span class="s2">        </span>
+ 599 <span class="s2">            chunkSize, auto</span>
+ 600 <span class="s2">            inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]</span>
+ 601 <span class="s2">            numProcesses, auto   [ Default: mp.cpu_count() ]</span>
+ 602 <span class="s2">        </span>
+ 603 <span class="s2">        These parameters are used by the following functions to configure and</span>
+ 604 <span class="s2">        control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and</span>
+ 605 <span class="s2">        mp.Pool.imap().</span>
+ 606 <span class="s2">        </span>
+ 607 <span class="s2">        The chunkSize determines chunks of input data passed to each worker</span>
+ 608 <span class="s2">        process in a process pool by mp.Pool.map() and mp.Pool.imap() functions.</span>
+ 609 <span class="s2">        The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</span>
+ 610 <span class="s2">        </span>
+ 611 <span class="s2">        The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode,</span>
+ 612 <span class="s2">        automatically converts RDKit data iterable into a list, loads all data into</span>
+ 613 <span class="s2">        memory, and calculates the default chunkSize using the following method</span>
+ 614 <span class="s2">        as shown in its code:</span>
+ 615 <span class="s2">        </span>
+ 616 <span class="s2">            chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)</span>
+ 617 <span class="s2">            if extra: chunkSize += 1</span>
+ 618 <span class="s2">        </span>
+ 619 <span class="s2">        For example, the default chunkSize will be 7 for a pool of 4 worker processes</span>
+ 620 <span class="s2">        and 100 data items.</span>
+ 621 <span class="s2">        </span>
+ 622 <span class="s2">        The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs</span>
+ 623 <span class="s2">        &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the</span>
+ 624 <span class="s2">        data into memory. Consequently, the size of input data is not known a priori.</span>
+ 625 <span class="s2">        It&#39;s not possible to estimate an optimal value for the chunkSize. The default </span>
+ 626 <span class="s2">        chunkSize is set to 1.</span>
+ 627 <span class="s2">        </span>
+ 628 <span class="s2">        The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely</span>
+ 629 <span class="s2">        impact the performance due to the overhead associated with exchanging</span>
+ 630 <span class="s2">        small chunks of data. It is generally a good idea to explicitly set chunkSize to</span>
+ 631 <span class="s2">        a larger value during &#39;Lazy&#39; input data mode, based on the size of your input</span>
+ 632 <span class="s2">        data and number of processes in the process pool.</span>
+ 633 <span class="s2">        </span>
+ 634 <span class="s2">        The mp.Pool.map() function waits for all worker processes to process all</span>
+ 635 <span class="s2">        the data and return the results. The mp.Pool.imap() function, however,</span>
+ 636 <span class="s2">        returns the the results obtained from worker processes as soon as the</span>
+ 637 <span class="s2">        results become available for specified chunks of data.</span>
+ 638 <span class="s2">        </span>
+ 639 <span class="s2">        The order of data in the results returned by both mp.Pool.map() and </span>
+ 640 <span class="s2">        mp.Pool.imap() functions always corresponds to the input data.</span>
+ 641 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 642 <span class="s2">        Output file name.</span>
+ 643 <span class="s2">    --outfileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 644 <span class="s2">        A comma delimited list of parameter name and value pairs for writing</span>
+ 645 <span class="s2">        molecules to files. The supported parameter names for different file</span>
+ 646 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 647 <span class="s2">            </span>
+ 648 <span class="s2">            SD: compute2DCoords,auto,kekulize,yes</span>
+ 649 <span class="s2">            SMILES: smilesKekulize,no,smilesDelimiter,space, smilesIsomeric,yes,</span>
+ 650 <span class="s2">                smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no</span>
+ 651 <span class="s2">            </span>
+ 652 <span class="s2">        Default value for compute2DCoords: yes for SMILES input file; no for all other</span>
+ 653 <span class="s2">        file types.</span>
+ 654 <span class="s2">    --overwrite</span>
+ 655 <span class="s2">        Overwrite existing files.</span>
+ 656 <span class="s2">    -q, --quiet &lt;yes or no&gt;  [default: no]</span>
+ 657 <span class="s2">        Use quiet mode. The warning and information messages will not be printed.</span>
+ 658 <span class="s2">    -s, --standardizeParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 659 <span class="s2">        A comma delimited list of parameter name and value pairs for standardizing</span>
+ 660 <span class="s2">        molecules. The supported parameter names along with their default values</span>
+ 661 <span class="s2">        are shown below:</span>
+ 662 <span class="s2">            </span>
+ 663 <span class="s2">            acidbaseFile,none,fragmentFile,none,normalizationsFile,none,</span>
+ 664 <span class="s2">            tautomerTransformsFile,none,</span>
+ 665 <span class="s2">            cleanupRemoveHydrogens,yes,cleanupDisconnectMetals,yes,</span>
+ 666 <span class="s2">            cleanupNormalize,yes,cleanupNormalizeMaxRestarts,200,</span>
+ 667 <span class="s2">            cleanupReionize,yes,cleanupAssignStereo,yes,</span>
+ 668 <span class="s2">            cleanupAssignStereoCleanIt,yes,cleanupAssignStereoForce,yes</span>
+ 669 <span class="s2">            largestFragmentChooserUseAtomCount,yes,</span>
+ 670 <span class="s2">            largestFragmentChooserCountHeavyAtomsOnly,no,preferOrganic,no,</span>
+ 671 <span class="s2">            doCanonical,yes,</span>
+ 672 <span class="s2">            maxTautomers,1000,maxTransforms,1000,</span>
+ 673 <span class="s2">            tautomerRemoveBondStereo,yes,tautomerRemoveIsotopicHs,yes</span>
+ 674 <span class="s2">            tautomerRemoveSp3Stereo,yes,tautomerReassignStereo,yes</span>
+ 675 <span class="s2">            </span>
+ 676 <span class="s2">        A brief description of the standardization parameters, taken from RDKit</span>
+ 677 <span class="s2">        documentation, is as follows:</span>
+ 678 <span class="s2">            </span>
+ 679 <span class="s2">            acidbaseFile - File containing acid and base definitions</span>
+ 680 <span class="s2">            fragmentFile - File containing fragment definitions</span>
+ 681 <span class="s2">            normalizationsFile - File conataining normalization transformations</span>
+ 682 <span class="s2">            tautomerTransformsFile - File containing tautomer transformations</span>
+ 683 <span class="s2">            </span>
+ 684 <span class="s2">            cleanupRemoveHydrogens - Remove hydrogens druring cleanup</span>
+ 685 <span class="s2">            cleanupDisconnectMetals - Disconnect metal atoms covalently bonded</span>
+ 686 <span class="s2">                to non-metals during cleanup</span>
+ 687 <span class="s2">            cleanupNormalize - Normalize functional groups and recombine</span>
+ 688 <span class="s2">                charges during cleanup</span>
+ 689 <span class="s2">            cleanupNormalizeMaxRestarts - Maximum number of restarts during</span>
+ 690 <span class="s2">                normalization step of cleanup</span>
+ 691 <span class="s2">            cleanupReionize -Ionize strongest acid groups first in partially</span>
+ 692 <span class="s2">                ionized molecules during cleanup</span>
+ 693 <span class="s2">            cleanupAssignStereo - Assign stererochemistry during cleanup</span>
+ 694 <span class="s2">            cleanupAssignStereoCleanIt - Clean property _CIPCode during</span>
+ 695 <span class="s2">                assign stereochemistry </span>
+ 696 <span class="s2">            cleanupAssignStereoForce - Always perform stereochemistry</span>
+ 697 <span class="s2">                calculation during assign stereochemistry</span>
+ 698 <span class="s2">            </span>
+ 699 <span class="s2">            largestFragmentChooserUseAtomCount - Use atom count as main</span>
+ 700 <span class="s2">                criterion before molecular weight to determine largest fragment</span>
+ 701 <span class="s2">                in LargestFragmentChooser</span>
+ 702 <span class="s2">            largestFragmentChooserCountHeavyAtomsOnly - Count only heavy</span>
+ 703 <span class="s2">                atoms to determine largest fragment in LargestFragmentChooser</span>
+ 704 <span class="s2">            preferOrganic - Prefer organic fragments over  inorganic ones when</span>
+ 705 <span class="s2">                choosing fragments</span>
+ 706 <span class="s2">            </span>
+ 707 <span class="s2">            doCanonical - Apply atom-order dependent normalizations in a</span>
+ 708 <span class="s2">                canonical order during uncharging</span>
+ 709 <span class="s2">            </span>
+ 710 <span class="s2">            maxTautomers - Maximum number of tautomers to generate</span>
+ 711 <span class="s2">            maxTransforms - Maximum number of transforms to apply during</span>
+ 712 <span class="s2">                tautomer enumeration</span>
+ 713 <span class="s2">            tautomerRemoveBondStereo - Remove stereochemistry from double bonds</span>
+ 714 <span class="s2">                involved in tautomerism</span>
+ 715 <span class="s2">            tautomerRemoveIsotopicHs: Remove isotopic Hs from centers involved in tautomerism</span>
+ 716 <span class="s2">            tautomerRemoveSp3Stereo - Remove stereochemistry from sp3 centers</span>
+ 717 <span class="s2">                involved in tautomerism</span>
+ 718 <span class="s2">            tautomerReassignStereo - AssignStereochemistry on all generated tautomers</span>
+ 719 <span class="s2">            </span>
+ 720 <span class="s2">        The default value is set to none for the following  file name parameters:</span>
+ 721 <span class="s2">        acidbaseFile, fragmentFile, normalizationsFile, and tautomerTransformsFile.</span>
+ 722 <span class="s2">        The script relies on RDKit to automatically load appropriate acid base and</span>
+ 723 <span class="s2">        fragment definitions along with normalization and tautomer transformations</span>
+ 724 <span class="s2">        from a set of internal catalogs.</span>
+ 725 <span class="s2">        </span>
+ 726 <span class="s2">        Note: The fragmentFile doesn&#39;t appear to be used by the RDKit method</span>
+ 727 <span class="s2">        rdMolStandardize.FragmentParent() to find largest fragment.</span>
+ 728 <span class="s2">            </span>
+ 729 <span class="s2">        The contents  of various standardization definitions and transformations files</span>
+ 730 <span class="s2">        are described below:</span>
+ 731 <span class="s2">            </span>
+ 732 <span class="s2">            acidbaseFile - File containing acid and base definitions</span>
+ 733 <span class="s2">            </span>
+ 734 <span class="s2">                // Name     Acid                 Base</span>
+ 735 <span class="s2">                -OSO3H      OS(=O)(=O)[OH]       OS(=O)(=O)[O-]</span>
+ 736 <span class="s2">                -SO3H       [!O]S(=O)(=O)[OH]    [!O]S(=O)(=O)[O-]</span>
+ 737 <span class="s2">                -OSO2H      O[SD3](=O)[OH]       O[SD3](=O)[O-]</span>
+ 738 <span class="s2">                ... ... ...</span>
+ 739 <span class="s2">        </span>
+ 740 <span class="s2">            fragmentFile - File containing fragment definitions</span>
+ 741 <span class="s2">            </span>
+ 742 <span class="s2">                // Name     SMARTS</span>
+ 743 <span class="s2">                hydrogen     [H]</span>
+ 744 <span class="s2">                fluorine     [F]</span>
+ 745 <span class="s2">                chlorine     [Cl]</span>
+ 746 <span class="s2">                ... ... ...</span>
+ 747 <span class="s2">        </span>
+ 748 <span class="s2">            normalizationsFile - File conataining normalization transformations</span>
+ 749 <span class="s2">            </span>
+ 750 <span class="s2">                // Name     SMIRKS</span>
+ 751 <span class="s2">                Sulfone to S(=O)(=O)        [S+2:1]([O-:2])([O-:3])&gt;&gt;</span>
+ 752 <span class="s2">                    [S+0:1](=[O-0:2])(=[O-0:3])</span>
+ 753 <span class="s2">                Pyridine oxide to n+O-     [n:1]=[O:2]&gt;&gt;[n+:1][O-:2]</span>
+ 754 <span class="s2">                ... ... ...</span>
+ 755 <span class="s2">        </span>
+ 756 <span class="s2">            tautomerTransformsFile - File containing tautomer transformations</span>
+ 757 <span class="s2">            </span>
+ 758 <span class="s2">                // Name                SMARTS   Bonds  Charges</span>
+ 759 <span class="s2">                1,3 (thio)keto/enol f  [CX4!H0]-[C]=[O,S,Se,Te;X1]</span>
+ 760 <span class="s2">                1,3 (thio)keto/enol r  [O,S,Se,Te;X2!H0]-[C]=[C]</span>
+ 761 <span class="s2">                1,5 (thio)keto/enol f  [CX4,NX3;!H0]-[C]=[C][CH0]=[O,S,Se,Te;X1]</span>
+ 762 <span class="s2">                ... ... ...</span>
+ 763 <span class="s2">            </span>
+ 764 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 765 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 766 
+ 767 <span class="s2">Examples:</span>
+ 768 <span class="s2">    To standardize molecules in a SMILES file by executing all standardization</span>
+ 769 <span class="s2">    steps and write out a SMILES file, type:</span>
+ 770 
+ 771 <span class="s2">        % RDKitStandardizeMolecules.py -i Sample.smi -o SampleOut.smi</span>
+ 772 
+ 773 <span class="s2">    To standardize molecules in a SD file by executing all standardization</span>
+ 774 <span class="s2">    steps, performing standardization in multiprocessing mode on all available</span>
+ 775 <span class="s2">    CPUs without loading all data into memory, and write out and write out a</span>
+ 776 <span class="s2">    SD file, type:</span>
+ 777 
+ 778 <span class="s2">        % RDKitStandardizeMolecules.py --mp yes -i Sample.sdf -o SampleOut.sdf</span>
+ 779 
+ 780 <span class="s2">    To standardize molecules in a SMILES file by executing  all standardization</span>
+ 781 <span class="s2">    steps, performing standardization in multiprocessing mode on all available</span>
+ 782 <span class="s2">    CPUs by loading all data into memory, and write out and write out a</span>
+ 783 <span class="s2">    SMILES file, type:</span>
+ 784 
+ 785 <span class="s2">        % RDKitStandardizeMolecules.py --mp yes --mpParams &quot;inputDataMode,</span>
+ 786 <span class="s2">          InMemory&quot; -i Sample.smi -o SampleOut.smi</span>
+ 787 <span class="s2">    </span>
+ 788 <span class="s2">    To standardize molecules in a SMILES file by executing  all standardization</span>
+ 789 <span class="s2">    steps, performing standardization in multiprocessing mode on specific number</span>
+ 790 <span class="s2">    of CPUs and chunk size without loading all data into memory, and write out a</span>
+ 791 <span class="s2">    a SMILES file, type:</span>
+ 792 
+ 793 <span class="s2">        % RDKitStandardizeMolecules.py --mp yes --mpParams &quot;inputDataMode,Lazy,</span>
+ 794 <span class="s2">          numProcesses,4,chunkSize,8&quot; -i Sample.smi -o SampleOut.smi</span>
+ 795 
+ 796 <span class="s2">    To count number of molecules to be standardized without generating any</span>
+ 797 <span class="s2">    output file, type:</span>
+ 798 
+ 799 <span class="s2">        % RDKitStandardizeMolecules.py -m count -i Sample.sdf</span>
+ 800 
+ 801 <span class="s2">    To standardize molecules in a SD file by executing specific standardization</span>
+ 802 <span class="s2">    steps along with explicit values for various parameters to control the</span>
+ 803 <span class="s2">    standardization behavior, and write out a SD file, type:</span>
+ 804 
+ 805 <span class="s2">        % RDKitStandardizeMolecules.py --methodologyParams &quot;cleanup,yes,</span>
+ 806 <span class="s2">          removeFragments,yes,neutralize,yes,canonicalizeTautomer,yes&quot;</span>
+ 807 <span class="s2">          --standardizeParams &quot;cleanupRemoveHydrogens,yes,</span>
+ 808 <span class="s2">          cleanupDisconnectMetals,yes,cleanupNormalize,yes,</span>
+ 809 <span class="s2">          cleanupNormalizeMaxRestarts,200,cleanupReionize,yes,</span>
+ 810 <span class="s2">          cleanupAssignStereo,yes,largestFragmentChooserUseAtomCount,yes,</span>
+ 811 <span class="s2">          doCanonical,yes,maxTautomers,1000&quot;</span>
+ 812 <span class="s2">          -i Sample.sdf -o SampleOut.sdf</span>
+ 813 
+ 814 <span class="s2">    To standardize molecules in a CSV SMILES file, SMILES strings in column 1,</span>
+ 815 <span class="s2">    name in column 2, and generate output SD file, type:</span>
+ 816 
+ 817 <span class="s2">        % RDKitStandardizeMolecules.py --infileParams </span>
+ 818 <span class="s2">          &quot;smilesDelimiter,comma,smilesTitleLine,yes,smilesColumn,1,</span>
+ 819 <span class="s2">          smilesNameColumn,2&quot; --outfileParams &quot;compute2DCoords,yes&quot;</span>
+ 820 <span class="s2">          -i SampleSMILES.csv -o SampleOut.sdf</span>
+ 821 
+ 822 <span class="s2">Author:</span>
+ 823 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 824 
+ 825 <span class="s2">See also:</span>
+ 826 <span class="s2">    RDKitConvertFileFormat.py, RDKitEnumerateTautomers.py,</span>
+ 827 <span class="s2">    RDKitRemoveDuplicateMolecules.py, RDKitRemoveInvalidMolecules.py,</span>
+ 828 <span class="s2">    RDKitRemoveSalts.py, RDKitSearchFunctionalGroups.py, RDKitSearchSMARTS.py</span>
+ 829 
+ 830 <span class="s2">Copyright:</span>
+ 831 <span class="s2">    Copyright (C) 2022 Manish Sud. All rights reserved.</span>
+ 832 
+ 833 <span class="s2">    The functionality available in this script is implemented using RDKit, an</span>
+ 834 <span class="s2">    open source toolkit for cheminformatics developed by Greg Landrum.</span>
+ 835 
+ 836 <span class="s2">    This file is part of MayaChemTools.</span>
+ 837 
+ 838 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 839 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 840 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 841 <span class="s2">    later version.</span>
+ 842 
+ 843 <span class="s2">&quot;&quot;&quot;</span>
+ 844 
+ 845 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 846     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

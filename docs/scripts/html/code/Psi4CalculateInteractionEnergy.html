@@ -1,0 +1,1037 @@
+<html>
+<head>
+<title>MayaChemTools:Code:Psi4CalculateInteractionEnergy.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+    1 <span class="ch">#!/bin/env python</span>
+    2 <span class="c1">#</span>
+    3 <span class="c1"># File: Psi4CalculateEnergy.py</span>
+    4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+    5 <span class="c1">#</span>
+    6 <span class="c1"># Copyright (C) 2022 Manish Sud. All rights reserved.</span>
+    7 <span class="c1">#</span>
+    8 <span class="c1"># The functionality available in this script is implemented using Psi4, an</span>
+    9 <span class="c1"># open source quantum chemistry software package, and RDKit, an open</span>
+   10 <span class="c1"># source toolkit for cheminformatics developed by Greg Landrum.</span>
+   11 <span class="c1">#</span>
+   12 <span class="c1"># This file is part of MayaChemTools.</span>
+   13 <span class="c1">#</span>
+   14 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+   15 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+   16 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+   17 <span class="c1"># later version.</span>
+   18 <span class="c1">#</span>
+   19 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+   20 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+   21 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+   22 <span class="c1"># details.</span>
+   23 <span class="c1">#</span>
+   24 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+   25 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+   26 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+   27 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+   28 <span class="c1">#</span>
+   29 
+   30 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+   31 
+   32 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+   33 <span class="kn">import</span> <span class="nn">os</span>
+   34 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+   35 <span class="kn">import</span> <span class="nn">time</span>
+   36 <span class="kn">import</span> <span class="nn">re</span>
+   37 <span class="kn">import</span> <span class="nn">shutil</span>
+   38 <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+   39 
+   40 <span class="c1"># Psi4 imports...</span>
+   41 <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">shutil</span><span class="p">,</span> <span class="s1">&#39;which&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;psi4&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+   42     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Warning: Failed to find &#39;psi4&#39; in your PATH indicating potential issues with your</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   43     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Psi4 environment. The &#39;import psi4&#39; directive in the global scope of the script</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   44     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;interferes with the multiprocessing functionality. It is imported later in the</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   45     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;local scope during the execution of the script and may fail. Check/update your</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   46     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Psi4 environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   47 
+   48 <span class="c1"># RDKit imports...</span>
+   49 <span class="k">try</span><span class="p">:</span>
+   50     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">rdBase</span>
+   51     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+   52     <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+   53 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+   54     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import RDKit module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+   55     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your RDKit environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   56     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+   57 
+   58 <span class="c1"># MayaChemTools imports...</span>
+   59 <span class="k">try</span><span class="p">:</span>
+   60     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+   61     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+   62     <span class="kn">import</span> <span class="nn">Psi4Util</span>
+   63     <span class="kn">import</span> <span class="nn">RDKitUtil</span>
+   64 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+   65     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+   66     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   67     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+   68 
+   69 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+   70 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+   71 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+   72 
+   73 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+   74     <span class="sd">&quot;&quot;&quot;Start execution of the script.&quot;&quot;&quot;</span>
+   75     
+   76     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (Psi4: Imported later; RDKit v</span><span class="si">%s</span><span class="s2">; MayaChemTools v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">): Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">rdBase</span><span class="o">.</span><span class="n">rdkitVersion</span><span class="p">,</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetMayaChemToolsVersion</span><span class="p">(),</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+   77     
+   78     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+   79     
+   80     <span class="c1"># Retrieve command line arguments and options...</span>
+   81     <span class="n">RetrieveOptions</span><span class="p">()</span>
+   82     
+   83     <span class="c1"># Process and validate command line arguments and options...</span>
+   84     <span class="n">ProcessOptions</span><span class="p">()</span>
+   85     
+   86     <span class="c1"># Perform actions required by the script...</span>
+   87     <span class="n">CalculateInteractionEnergy</span><span class="p">()</span>
+   88     
+   89     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+   90     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+   91 
+   92 <span class="k">def</span> <span class="nf">CalculateInteractionEnergy</span><span class="p">():</span>
+   93     <span class="sd">&quot;&quot;&quot;Calculate interaction energy.&quot;&quot;&quot;</span>
+   94     
+   95     <span class="c1"># Setup a molecule reader...</span>
+   96     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+   97     <span class="n">Mols</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadMolecules</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+   98     
+   99     <span class="c1"># Set up a molecule writer...</span>
+  100     <span class="n">Writer</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+  101     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  102         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  103     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  104 
+  105     <span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">EnergyFailedCount</span> <span class="o">=</span> <span class="n">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  106 
+  107     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  108         <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+  109     
+  110     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolCount</span><span class="p">)</span>
+  111     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ValidMolCount</span><span class="p">)</span>
+  112     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of molecules failed during energy calculation: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">EnergyFailedCount</span><span class="p">)</span>
+  113     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolCount</span> <span class="o">-</span> <span class="n">ValidMolCount</span> <span class="o">+</span> <span class="n">EnergyFailedCount</span><span class="p">))</span>
+  114 
+  115 <span class="k">def</span> <span class="nf">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+  116     <span class="sd">&quot;&quot;&quot;Process and calculate energy of molecules.&quot;&quot;&quot;</span>
+  117     
+  118     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]:</span>
+  119         <span class="k">return</span> <span class="n">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  120     <span class="k">else</span><span class="p">:</span>
+  121         <span class="k">return</span> <span class="n">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  122 
+  123 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+  124     <span class="sd">&quot;&quot;&quot;Process and calculate energy of molecules using a single process.&quot;&quot;&quot;</span>
+  125     
+  126     <span class="c1"># Intialize Psi4...</span>
+  127     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Initializing Psi4...&quot;</span><span class="p">)</span>
+  128     <span class="n">Psi4Handle</span> <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">InitializePsi4</span><span class="p">(</span><span class="n">Psi4RunParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4RunParams&quot;</span><span class="p">],</span> <span class="n">Psi4OptionsParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4OptionsParams&quot;</span><span class="p">],</span> <span class="n">PrintVersion</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">PrintHeader</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+  129     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;psi4&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Handle</span>
+  130 
+  131     <span class="c1"># Setup conversion factor for energy units...</span>
+  132     <span class="n">SetupEnergyConversionFactor</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">)</span>
+  133     
+  134     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Calculating interaction energy...&quot;</span><span class="p">)</span>
+  135     
+  136     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">EnergyFailedCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+  137     <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+  138         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  139         
+  140         <span class="k">if</span> <span class="ow">not</span> <span class="n">CheckAndValidateMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">):</span>
+  141             <span class="k">continue</span>
+  142         
+  143         <span class="c1"># Setup a Psi4 molecule...</span>
+  144         <span class="n">Psi4Mol</span> <span class="o">=</span> <span class="n">SetupPsi4Mol</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  145         <span class="k">if</span> <span class="n">Psi4Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  146             <span class="k">continue</span>
+  147         
+  148         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  149 
+  150         <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span> <span class="o">=</span> <span class="n">CalculateMoleculeInteractionEnergy</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">,</span> <span class="n">Psi4Mol</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  151         
+  152         <span class="k">if</span> <span class="ow">not</span> <span class="n">CalcStatus</span><span class="p">:</span>
+  153             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  154                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to calculate interaction energy for molecule </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">))</span>
+  155             
+  156             <span class="n">EnergyFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  157             <span class="k">continue</span>
+  158 
+  159         <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">)</span>
+  160     
+  161     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">EnergyFailedCount</span><span class="p">)</span>
+  162 
+  163 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+  164     <span class="sd">&quot;&quot;&quot;Process and calculate energy of molecules using  process.&quot;&quot;&quot;</span>
+  165     
+  166     <span class="n">MPParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span>
+  167     
+  168     <span class="c1"># Setup data for initializing a worker process...</span>
+  169     <span class="n">InitializeWorkerProcessArgs</span> <span class="o">=</span> <span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">Options</span><span class="p">),</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">))</span>
+  170     
+  171     <span class="c1"># Setup a encoded mols data iterable for a worker process...</span>
+  172     <span class="n">WorkerProcessDataIterable</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GenerateBase64EncodedMolStrings</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+  173     
+  174     <span class="c1"># Setup process pool along with data initialization for each process...</span>
+  175     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  176         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Configuring multiprocessing using </span><span class="si">%s</span><span class="s2"> method...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;mp.Pool.imap()&quot;</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;mp.Pool.map()&quot;</span><span class="p">))</span>
+  177         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;NumProcesses: </span><span class="si">%s</span><span class="s2">; InputDataMode: </span><span class="si">%s</span><span class="s2">; ChunkSize: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="p">(</span><span class="s2">&quot;automatic&quot;</span> <span class="k">if</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])))</span>
+  178     
+  179     <span class="n">ProcessPool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">InitializeWorkerProcess</span><span class="p">,</span> <span class="n">InitializeWorkerProcessArgs</span><span class="p">)</span>
+  180     
+  181     <span class="c1"># Start processing...</span>
+  182     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  183         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+  184     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^InMemory$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  185         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+  186     <span class="k">else</span><span class="p">:</span>
+  187         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The value, </span><span class="si">%s</span><span class="s2">, specified for </span><span class="se">\&quot;</span><span class="s2">--inputDataMode</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">]))</span>
+  188 
+  189     <span class="c1"># Print out Psi4 version in the main process...</span>
+  190     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Initializing Psi4...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  191     <span class="n">Psi4Handle</span>  <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">InitializePsi4</span><span class="p">(</span><span class="n">PrintVersion</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">PrintHeader</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+  192     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;psi4&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Handle</span>
+  193     
+  194     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">EnergyFailedCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+  195     <span class="k">for</span> <span class="n">Result</span> <span class="ow">in</span> <span class="n">Results</span><span class="p">:</span>
+  196         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  197         <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span> <span class="o">=</span> <span class="n">Result</span>
+  198         
+  199         <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  200             <span class="k">continue</span>
+  201         
+  202         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  203 
+  204         <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+  205         
+  206         <span class="k">if</span> <span class="ow">not</span> <span class="n">CalcStatus</span><span class="p">:</span>
+  207             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  208                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  209                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to calculate energy for molecule </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  210             
+  211             <span class="n">EnergyFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  212             <span class="k">continue</span>
+  213         
+  214         <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">)</span>
+  215     
+  216     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">EnergyFailedCount</span><span class="p">)</span>
+  217 
+  218 <span class="k">def</span> <span class="nf">InitializeWorkerProcess</span><span class="p">(</span><span class="o">*</span><span class="n">EncodedArgs</span><span class="p">):</span>
+  219     <span class="sd">&quot;&quot;&quot;Initialize data for a worker process.&quot;&quot;&quot;</span>
+  220     
+  221     <span class="k">global</span> <span class="n">Options</span><span class="p">,</span> <span class="n">OptionsInfo</span>
+  222     
+  223     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  224         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Starting process (PID: </span><span class="si">%s</span><span class="s2">)...&quot;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+  225     
+  226     <span class="c1"># Decode Options and OptionInfo...</span>
+  227     <span class="n">Options</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  228     <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+  229 
+  230     <span class="c1"># Psi4 is initialized in the worker process to avoid creation of redundant Psi4</span>
+  231     <span class="c1"># output files for each process...</span>
+  232     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4Initialized&quot;</span><span class="p">]</span>  <span class="o">=</span> <span class="bp">False</span>
+  233 
+  234 <span class="k">def</span> <span class="nf">InitializePsi4ForWorkerProcess</span><span class="p">():</span>
+  235     <span class="sd">&quot;&quot;&quot;Initialize Psi4 for a worker process.&quot;&quot;&quot;</span>
+  236     
+  237     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4Initialized&quot;</span><span class="p">]:</span>
+  238         <span class="k">return</span>
+  239 
+  240     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4Initialized&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+  241     
+  242     <span class="c1"># Update output file...</span>
+  243     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4RunParams&quot;</span><span class="p">][</span><span class="s2">&quot;OutputFile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">UpdatePsi4OutputFileUsingPID</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4RunParams&quot;</span><span class="p">][</span><span class="s2">&quot;OutputFile&quot;</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+  244     
+  245     <span class="c1"># Intialize Psi4...</span>
+  246     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;psi4&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">InitializePsi4</span><span class="p">(</span><span class="n">Psi4RunParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4RunParams&quot;</span><span class="p">],</span> <span class="n">Psi4OptionsParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4OptionsParams&quot;</span><span class="p">],</span> <span class="n">PrintVersion</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">PrintHeader</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+  247     
+  248     <span class="c1"># Setup conversion factor for energy units...</span>
+  249     <span class="n">SetupEnergyConversionFactor</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;psi4&quot;</span><span class="p">])</span>
+  250     
+  251 <span class="k">def</span> <span class="nf">WorkerProcess</span><span class="p">(</span><span class="n">EncodedMolInfo</span><span class="p">):</span>
+  252     <span class="sd">&quot;&quot;&quot;Process data for a worker process.&quot;&quot;&quot;</span>
+  253     
+  254     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4Initialized&quot;</span><span class="p">]:</span>
+  255         <span class="n">InitializePsi4ForWorkerProcess</span><span class="p">()</span>
+  256     
+  257     <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span> <span class="o">=</span> <span class="n">EncodedMolInfo</span>
+  258     
+  259     <span class="n">CalcStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  260     <span class="n">Energy</span> <span class="o">=</span> <span class="bp">None</span>
+  261     <span class="n">EnergyDetails</span> <span class="o">=</span> <span class="bp">None</span>
+  262     
+  263     <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  264         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">]</span>
+  265     
+  266     <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+  267     <span class="n">MolCount</span> <span class="o">=</span> <span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span>
+  268     
+  269     <span class="k">if</span> <span class="ow">not</span> <span class="n">CheckAndValidateMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">):</span>
+  270         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">]</span>
+  271     
+  272     <span class="c1"># Setup a Psi4 molecule...</span>
+  273     <span class="n">Psi4Mol</span> <span class="o">=</span> <span class="n">SetupPsi4Mol</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;psi4&quot;</span><span class="p">],</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  274     <span class="k">if</span> <span class="n">Psi4Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  275         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">]</span>
+  276     
+  277     <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span> <span class="o">=</span> <span class="n">CalculateMoleculeInteractionEnergy</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;psi4&quot;</span><span class="p">],</span> <span class="n">Psi4Mol</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  278     
+  279     <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">MolProps</span> <span class="o">|</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">PrivateProps</span><span class="p">),</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">]</span>
+  280 
+  281 <span class="k">def</span> <span class="nf">CalculateMoleculeInteractionEnergy</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">,</span> <span class="n">Psi4Mol</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  282     <span class="sd">&quot;&quot;&quot;Calculate interaction energy for a molecule containing two components.&quot;&quot;&quot;</span>
+  283     
+  284     <span class="c1">#  Setup reference wave function...</span>
+  285     <span class="n">Reference</span> <span class="o">=</span> <span class="n">SetupReferenceWavefunction</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  286     <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">set_options</span><span class="p">({</span><span class="s1">&#39;Reference&#39;</span><span class="p">:</span> <span class="n">Reference</span><span class="p">})</span>
+  287     
+  288     <span class="c1"># Setup method name and basis set...</span>
+  289     <span class="n">MethodName</span><span class="p">,</span> <span class="n">BasisSet</span> <span class="o">=</span> <span class="n">SetupMethodNameAndBasisSet</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  290     <span class="n">MethodAndBasisSet</span> <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">JoinMethodNameAndBasisSet</span><span class="p">(</span><span class="n">MethodName</span><span class="p">,</span> <span class="n">BasisSet</span><span class="p">)</span>
+  291     
+  292     <span class="n">Status</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span> <span class="o">=</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span>
+  293     <span class="k">try</span><span class="p">:</span>
+  294         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BSSEType&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  295             <span class="n">Energy</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">energy</span><span class="p">(</span><span class="n">MethodAndBasisSet</span><span class="p">,</span> <span class="n">molecule</span> <span class="o">=</span> <span class="n">Psi4Mol</span><span class="p">,</span> <span class="n">return_wfn</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+  296         <span class="k">else</span><span class="p">:</span>
+  297             <span class="n">Energy</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">energy</span><span class="p">(</span><span class="n">MethodAndBasisSet</span><span class="p">,</span> <span class="n">bsse_type</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BSSEType&quot;</span><span class="p">],</span> <span class="n">molecule</span> <span class="o">=</span> <span class="n">Psi4Mol</span><span class="p">,</span> <span class="n">return_wfn</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+  298         <span class="n">Status</span> <span class="o">=</span> <span class="bp">True</span>
+  299     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  300         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  301             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to calculate interaction energy:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  302     
+  303     <span class="c1"># Retrieve SAPT energy details...</span>
+  304     <span class="k">if</span> <span class="n">Status</span> <span class="ow">and</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]:</span>
+  305         <span class="n">EnergyTypeMap</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDsToTypes&quot;</span><span class="p">]</span>
+  306         <span class="n">EnergyDetails</span> <span class="o">=</span> <span class="p">{}</span>
+  307         <span class="k">for</span> <span class="n">EnergyType</span> <span class="ow">in</span> <span class="n">EnergyTypeMap</span><span class="p">:</span>
+  308             <span class="k">try</span><span class="p">:</span>
+  309                 <span class="n">EnergyDetails</span><span class="p">[</span><span class="n">EnergyType</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">variable</span><span class="p">(</span><span class="n">EnergyTypeMap</span><span class="p">[</span><span class="n">EnergyType</span><span class="p">])</span>
+  310             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  311                 <span class="n">EnergyDetails</span><span class="p">[</span><span class="n">EnergyType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  312                 <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  313                     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to retrieve value for interaction energy components </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">EnergyType</span><span class="p">,</span> <span class="n">ErrMsg</span><span class="p">))</span>
+  314     
+  315     <span class="c1"># Convert energy units...</span>
+  316     <span class="k">if</span> <span class="n">Status</span> <span class="ow">and</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ApplyEnergyConversionFactor&quot;</span><span class="p">]:</span>
+  317         <span class="k">if</span> <span class="n">Energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  318             <span class="n">Energy</span> <span class="o">=</span> <span class="n">Energy</span> <span class="o">*</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyConversionFactor&quot;</span><span class="p">]</span>
+  319         <span class="k">if</span> <span class="n">EnergyDetails</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  320             <span class="k">for</span> <span class="n">EnergyType</span> <span class="ow">in</span> <span class="n">EnergyDetails</span><span class="p">:</span>
+  321                 <span class="k">if</span> <span class="n">EnergyDetails</span><span class="p">[</span><span class="n">EnergyType</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  322                     <span class="n">EnergyDetails</span><span class="p">[</span><span class="n">EnergyType</span><span class="p">]</span> <span class="o">=</span> <span class="n">EnergyDetails</span><span class="p">[</span><span class="n">EnergyType</span><span class="p">]</span> <span class="o">*</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyConversionFactor&quot;</span><span class="p">]</span>
+  323     
+  324     <span class="c1"># Clean up</span>
+  325     <span class="n">PerformPsi4Cleanup</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">)</span>
+  326     
+  327     <span class="k">return</span> <span class="p">(</span><span class="n">Status</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">)</span>
+  328 
+  329 <span class="k">def</span> <span class="nf">SetupPsi4Mol</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  330     <span class="sd">&quot;&quot;&quot;Setup a Psi4 molecule object.&quot;&quot;&quot;</span>
+  331     
+  332     <span class="n">MolGeometry</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetPsi4XYZFormatString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">NoCom</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">NoReorient</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">CheckFragments</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+  333     
+  334     <span class="k">try</span><span class="p">:</span>
+  335         <span class="n">Psi4Mol</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">geometry</span><span class="p">(</span><span class="n">MolGeometry</span><span class="p">)</span>
+  336     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  337         <span class="n">Psi4Mol</span> <span class="o">=</span> <span class="bp">None</span>
+  338         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  339             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to create Psi4 molecule from geometry string: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  340             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  341             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  342     
+  343     <span class="k">return</span> <span class="n">Psi4Mol</span>
+  344 
+  345 <span class="k">def</span> <span class="nf">PerformPsi4Cleanup</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">):</span>
+  346     <span class="sd">&quot;&quot;&quot;Perform clean up.&quot;&quot;&quot;</span>
+  347     
+  348     <span class="c1"># Clean up after Psi4 run ...</span>
+  349     <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+  350     
+  351     <span class="c1"># Clean up any leftover scratch files...</span>
+  352     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]:</span>
+  353         <span class="n">Psi4Util</span><span class="o">.</span><span class="n">RemoveScratchFiles</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4RunParams&quot;</span><span class="p">][</span><span class="s2">&quot;OutputFile&quot;</span><span class="p">])</span>
+  354 
+  355 <span class="k">def</span> <span class="nf">CheckAndValidateMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  356     <span class="sd">&quot;&quot;&quot;Validate molecule for Psi4 calculations.&quot;&quot;&quot;</span>
+  357 
+  358     <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  359         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  360             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing molecule number </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">MolCount</span><span class="p">)</span>
+  361         <span class="k">return</span> <span class="bp">False</span>
+  362     
+  363     <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  364     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  365         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing molecule </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  366     
+  367     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  368         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  369             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  370         <span class="k">return</span> <span class="bp">False</span>
+  371     
+  372     <span class="k">if</span> <span class="ow">not</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ValidateElementSymbols</span><span class="p">(</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetAtomSymbols</span><span class="p">(</span><span class="n">Mol</span><span class="p">)):</span>
+  373         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  374             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring molecule containing invalid element symbols: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  375         <span class="k">return</span> <span class="bp">False</span>
+  376 
+  377     <span class="c1"># Check for number of fragments...</span>
+  378     <span class="n">NumFragments</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetNumFragments</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  379     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SNSMP2Mode&quot;</span><span class="p">]:</span>
+  380         <span class="k">if</span> <span class="n">NumFragments</span> <span class="o">!=</span> <span class="mi">2</span> <span class="p">:</span>
+  381             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  382                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring molecule containing invalid number of fragments: </span><span class="si">%s</span><span class="s2">. It must contain exaclty 2 fragments for calculation of interaction energy using SAPT or SNS-MP2 methodology.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">NumFragments</span><span class="p">)</span>
+  383             <span class="k">return</span> <span class="bp">False</span>
+  384     <span class="k">else</span><span class="p">:</span>
+  385         <span class="k">if</span> <span class="n">NumFragments</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+  386             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  387                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring molecule containing invalid number of fragments: </span><span class="si">%s</span><span class="s2">. It must contain more than 1 fragment for calculation of interaction energy using counterpoise correctio methodology.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">NumFragments</span><span class="p">)</span>
+  388             <span class="k">return</span> <span class="bp">False</span>
+  389         
+  390     <span class="c1"># Check for 3D flag...</span>
+  391     <span class="k">if</span> <span class="ow">not</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span><span class="o">.</span><span class="n">Is3D</span><span class="p">():</span>
+  392         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  393             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;3D tag is not set for molecule: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  394     
+  395     <span class="c1"># Check for missing hydrogens...</span>
+  396     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">AreHydrogensMissingInMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  397         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  398             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Missing hydrogens in molecule: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  399 
+  400     <span class="k">return</span> <span class="bp">True</span>
+  401 
+  402 <span class="k">def</span> <span class="nf">SetupMethodNameAndBasisSet</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  403     <span class="sd">&quot;&quot;&quot;Setup method name and basis set.&quot;&quot;&quot;</span>
+  404 
+  405     <span class="k">return</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodName&quot;</span><span class="p">],</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BasisSet&quot;</span><span class="p">])</span>
+  406 
+  407 <span class="k">def</span> <span class="nf">SetupReferenceWavefunction</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  408     <span class="sd">&quot;&quot;&quot;Setup reference wave function.&quot;&quot;&quot;</span>
+  409 
+  410     <span class="n">Reference</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Reference&quot;</span><span class="p">]</span>
+  411     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ReferenceAuto&quot;</span><span class="p">]:</span>
+  412         <span class="n">Reference</span> <span class="o">=</span> <span class="s1">&#39;UHF&#39;</span> <span class="k">if</span> <span class="p">(</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetSpinMultiplicity</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;RHF&#39;</span>
+  413     
+  414     <span class="k">return</span> <span class="n">Reference</span>
+  415 
+  416 <span class="k">def</span> <span class="nf">SetupEnergyConversionFactor</span><span class="p">(</span><span class="n">Psi4Handle</span><span class="p">):</span>
+  417     <span class="sd">&quot;&quot;&quot;Setup converstion factor for energt units. The Psi4 energy units are Hartrees.&quot;&quot;&quot;</span>
+  418     
+  419     <span class="n">EnergyUnits</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyUnits&quot;</span><span class="p">]</span>
+  420     
+  421     <span class="n">ApplyConversionFactor</span> <span class="o">=</span> <span class="bp">True</span>
+  422     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^kcal\/mol$&quot;</span><span class="p">,</span> <span class="n">EnergyUnits</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  423         <span class="n">ConversionFactor</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">hartree2kcalmol</span>
+  424     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^kJ\/mol$&quot;</span><span class="p">,</span> <span class="n">EnergyUnits</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  425         <span class="n">ConversionFactor</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">hartree2kJmol</span>
+  426     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^eV$&quot;</span><span class="p">,</span> <span class="n">EnergyUnits</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  427         <span class="n">ConversionFactor</span> <span class="o">=</span> <span class="n">Psi4Handle</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">hartree2ev</span>
+  428     <span class="k">else</span><span class="p">:</span>
+  429         <span class="n">ApplyConversionFactor</span> <span class="o">=</span> <span class="bp">False</span>
+  430         <span class="n">ConversionFactor</span> <span class="o">=</span> <span class="mf">1.0</span>
+  431     
+  432     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ApplyEnergyConversionFactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ApplyConversionFactor</span>
+  433     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyConversionFactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ConversionFactor</span>
+  434 
+  435 <span class="k">def</span> <span class="nf">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Energy</span><span class="p">,</span> <span class="n">EnergyDetails</span><span class="p">):</span>
+  436     <span class="sd">&quot;&quot;&quot;Write molecule.&quot;&quot;&quot;</span>
+  437 
+  438     <span class="c1"># Setup energy...</span>
+  439     <span class="n">EnergyValue</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.*f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">],</span> <span class="n">Energy</span><span class="p">)</span> <span class="k">if</span> <span class="n">Energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+  440     <span class="n">Mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyDataFieldLabel&quot;</span><span class="p">],</span> <span class="n">EnergyValue</span><span class="p">)</span>
+  441         
+  442     <span class="c1"># Setup SAPT energy details...</span>
+  443     <span class="k">if</span> <span class="n">EnergyDetails</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]:</span>
+  444         <span class="k">for</span> <span class="n">EnergyID</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDs&quot;</span><span class="p">]:</span>
+  445             <span class="n">Energy</span> <span class="o">=</span> <span class="n">EnergyDetails</span><span class="p">[</span><span class="n">EnergyID</span><span class="p">]</span> <span class="k">if</span> <span class="n">EnergyID</span> <span class="ow">in</span> <span class="n">EnergyDetails</span> <span class="k">else</span> <span class="bp">None</span>
+  446             <span class="n">EnergyValue</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.*f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">],</span> <span class="n">Energy</span><span class="p">)</span> <span class="k">if</span> <span class="n">Energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+  447             
+  448             <span class="n">Mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDsToLabels&quot;</span><span class="p">][</span><span class="n">EnergyID</span><span class="p">],</span> <span class="n">EnergyValue</span><span class="p">)</span>
+  449     
+  450     <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  451 
+  452 <span class="k">def</span> <span class="nf">ProcessMethodNameAndBasisSetOptions</span><span class="p">():</span>
+  453     <span class="sd">&quot;&quot;&quot;Process method name and basis set options.&quot;&quot;&quot;</span>
+  454     
+  455     <span class="n">MethodName</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--methodName&quot;</span><span class="p">]</span>
+  456     <span class="n">MethodNameAuto</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">MethodName</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  457     <span class="k">if</span> <span class="n">MethodNameAuto</span><span class="p">:</span>
+  458         <span class="n">MethodName</span> <span class="o">=</span> <span class="s2">&quot;SAPT0&quot;</span>
+  459     <span class="n">SAPTMode</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^SAPT&quot;</span><span class="p">,</span> <span class="n">MethodName</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  460     
+  461     <span class="n">SNSMP2Mode</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^SNS-MP2$&quot;</span><span class="p">,</span> <span class="n">MethodName</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  462     
+  463     <span class="n">BasisSet</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--basisSet&quot;</span><span class="p">]</span>
+  464     <span class="n">BasisSetAuto</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">BasisSet</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  465     <span class="k">if</span> <span class="n">BasisSetAuto</span><span class="p">:</span>
+  466         <span class="k">if</span> <span class="n">SAPTMode</span><span class="p">:</span>
+  467             <span class="n">BasisSet</span> <span class="o">=</span> <span class="s2">&quot;jun-cc-pVDZ&quot;</span>
+  468         <span class="k">elif</span> <span class="n">SNSMP2Mode</span><span class="p">:</span>
+  469             <span class="n">BasisSet</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+  470         <span class="k">else</span><span class="p">:</span>
+  471             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;A basis set must be explicitly specified using </span><span class="se">\&quot;</span><span class="s2">-b, --basisSet</span><span class="se">\&quot;</span><span class="s2"> option for, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --methodName</span><span class="se">\&quot;</span><span class="s2">. &quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MethodName</span><span class="p">))</span>
+  472 
+  473     <span class="k">if</span> <span class="n">SNSMP2Mode</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">IsEmpty</span><span class="p">(</span><span class="n">BasisSet</span><span class="p">):</span>
+  474         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The basis set value, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-b, --basisSet</span><span class="se">\&quot;</span><span class="s2"> option is not valid. It must be an empty string SNS-MP2 calculations.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--basisSet&quot;</span><span class="p">]))</span>
+  475         
+  476     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodName&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MethodName</span>
+  477     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodNameAuto&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MethodNameAuto</span>
+  478     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SAPTMode</span>
+  479     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SNSMP2Mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SNSMP2Mode</span>
+  480 
+  481     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BasisSet&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BasisSet</span>
+  482     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BasisSetAuto&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BasisSetAuto</span>
+  483     
+  484 <span class="k">def</span> <span class="nf">ProcessBSSETypeOption</span><span class="p">():</span>
+  485     <span class="sd">&quot;&quot;&quot;Process basis set superposition energy correction option.&quot;&quot;&quot;</span>
+  486 
+  487     <span class="n">BSSEType</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^None$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="ow">or</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">IsEmpty</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">])</span> <span class="k">else</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">]</span>
+  488     <span class="n">BSSETypeAuto</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  489     
+  490     <span class="k">if</span> <span class="n">BSSETypeAuto</span><span class="p">:</span>
+  491         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SNSMP2Mode&quot;</span><span class="p">]:</span>
+  492             <span class="n">BSSEType</span> <span class="o">=</span> <span class="bp">None</span>
+  493         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^HF3c$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodName&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  494             <span class="n">BSSEType</span> <span class="o">=</span> <span class="s2">&quot;noCP&quot;</span>
+  495         <span class="k">else</span><span class="p">:</span>
+  496             <span class="n">BSSEType</span> <span class="o">=</span> <span class="s2">&quot;CP&quot;</span>
+  497     <span class="k">else</span><span class="p">:</span>
+  498         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SNSMP2Mode&quot;</span><span class="p">]:</span>
+  499             <span class="k">if</span> <span class="n">BSSEType</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  500                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The BSSE type value, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">--bsseType</span><span class="se">\&quot;</span><span class="s2"> option is not valid for SAPT or SNS-MP2 calculations. It must be set to None.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">]))</span>
+  501         <span class="k">else</span><span class="p">:</span>
+  502             <span class="k">if</span> <span class="n">BSSEType</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  503                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;The BSSE type value, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">--bsseType</span><span class="se">\&quot;</span><span class="s2"> option is not valid for </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> calculations. Possible values: CP, noCP or VMFC&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">],</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MethodName&quot;</span><span class="p">]))</span>
+  504                 
+  505     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BSSEType&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BSSEType</span>
+  506     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;BSSETypeAuto&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BSSETypeAuto</span>
+  507 
+  508 <span class="k">def</span> <span class="nf">ProcessSAPTEnergyDataFieldLabelsOption</span><span class="p">():</span>
+  509     <span class="sd">&quot;&quot;&quot;Process data field labels for SAPT interaction energy components.&quot;&quot;&quot;</span>
+  510 
+  511     <span class="n">ParamsOptionName</span> <span class="o">=</span> <span class="s2">&quot;--energySAPTDataFieldLabels&quot;</span>
+  512     <span class="n">ParamsOptionValue</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energySAPTDataFieldLabels&quot;</span><span class="p">]</span>
+  513     
+  514     <span class="n">ParamsIDs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ElectrostaticEnergy&quot;</span><span class="p">,</span> <span class="s2">&quot;ExchangeEnergy&quot;</span><span class="p">,</span> <span class="s2">&quot;InductionEnergy&quot;</span><span class="p">,</span> <span class="s2">&quot;DispersionEnergy&quot;</span><span class="p">]</span>
+  515     <span class="n">ParamsIDsToTypes</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ElectrostaticEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;SAPT ELST ENERGY&quot;</span><span class="p">,</span> <span class="s2">&quot;ExchangeEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;SAPT EXCH ENERGY&quot;</span><span class="p">,</span> <span class="s2">&quot;InductionEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;SAPT IND ENERGY&quot;</span><span class="p">,</span> <span class="s2">&quot;DispersionEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;SAPT DISP ENERGY&quot;</span><span class="p">}</span>
+  516     
+  517     <span class="n">UnitsLabel</span> <span class="o">=</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyUnits&quot;</span><span class="p">]</span>
+  518     <span class="n">ParamsIDsToLabels</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ElectrostaticEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;Psi4_SAPT_Electrostatic_Energy </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">UnitsLabel</span><span class="p">,</span> <span class="s2">&quot;ExchangeEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;Psi4_SAPT_Exchange_Energy </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">UnitsLabel</span><span class="p">,</span> <span class="s2">&quot;InductionEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;Psi4_SAPT_Induction_Energy </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">UnitsLabel</span><span class="p">,</span> <span class="s2">&quot;DispersionEnergy&quot;</span><span class="p">:</span> <span class="s2">&quot;Psi4_SAPT_Dispersion_Energy </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">UnitsLabel</span><span class="p">}</span>
+  519     
+  520     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">ParamsOptionValue</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  521         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamsIDs</span>
+  522         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDsToTypes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamsIDsToTypes</span>
+  523         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDsToLabels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamsIDsToLabels</span>
+  524         <span class="k">return</span>
+  525     
+  526     <span class="c1"># Setup a canonical paramater names...</span>
+  527     <span class="n">ValidParamNames</span> <span class="o">=</span> <span class="p">[]</span>
+  528     <span class="n">CanonicalParamNamesMap</span> <span class="o">=</span> <span class="p">{}</span>
+  529     <span class="k">for</span> <span class="n">ParamName</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ParamsIDsToLabels</span><span class="p">):</span>
+  530         <span class="n">ValidParamNames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ParamName</span><span class="p">)</span>
+  531         <span class="n">CanonicalParamNamesMap</span><span class="p">[</span><span class="n">ParamName</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">ParamName</span>
+  532     
+  533     <span class="n">ParamsOptionValue</span> <span class="o">=</span> <span class="n">ParamsOptionValue</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+  534     <span class="k">if</span> <span class="ow">not</span> <span class="n">ParamsOptionValue</span><span class="p">:</span>
+  535         <span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;No valid parameter name and value pairs specified using </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> option&quot;</span> <span class="o">%</span> <span class="n">ParamsOptionName</span><span class="p">)</span>
+  536     
+  537     <span class="n">ParamsOptionValueWords</span> <span class="o">=</span> <span class="n">ParamsOptionValue</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+  538     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ParamsOptionValueWords</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">:</span>
+  539         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The number of comma delimited paramater names and values, </span><span class="si">%d</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> option must be an even number.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ParamsOptionValueWords</span><span class="p">),</span> <span class="n">ParamsOptionName</span><span class="p">))</span>
+  540     
+  541     <span class="c1"># Validate paramater name and value pairs...</span>
+  542     <span class="k">for</span> <span class="n">Index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ParamsOptionValueWords</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+  543         <span class="n">Name</span> <span class="o">=</span> <span class="n">ParamsOptionValueWords</span><span class="p">[</span><span class="n">Index</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+  544         <span class="n">Value</span> <span class="o">=</span> <span class="n">ParamsOptionValueWords</span><span class="p">[</span><span class="n">Index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+  545 
+  546         <span class="n">CanonicalName</span> <span class="o">=</span> <span class="n">Name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+  547         <span class="k">if</span>  <span class="ow">not</span> <span class="n">CanonicalName</span> <span class="ow">in</span> <span class="n">CanonicalParamNamesMap</span><span class="p">:</span>
+  548             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The parameter name, </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> is not a valid name. Supported parameter names: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">ParamsOptionName</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ValidParamNames</span><span class="p">)))</span>
+  549 
+  550         <span class="n">ParamName</span> <span class="o">=</span> <span class="n">CanonicalParamNamesMap</span><span class="p">[</span><span class="n">CanonicalName</span><span class="p">]</span>
+  551         <span class="n">ParamValue</span> <span class="o">=</span> <span class="n">Value</span>
+  552         
+  553         <span class="c1"># Set value...</span>
+  554         <span class="n">ParamsIDsToLabels</span><span class="p">[</span><span class="n">ParamName</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamValue</span>
+  555     
+  556     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamsIDs</span>
+  557     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDsToTypes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamsIDsToTypes</span>
+  558     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTEnergyIDsToLabels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ParamsIDsToLabels</span>
+  559 
+  560 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+  561     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options.&quot;&quot;&quot;</span>
+  562     
+  563     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+  564     
+  565     <span class="c1"># Validate options...</span>
+  566     <span class="n">ValidateOptions</span><span class="p">()</span>
+  567     
+  568     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+  569     <span class="n">ParamsDefaultInfoOverride</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}</span>
+  570     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionInfileParameters</span><span class="p">(</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">],</span> <span class="n">InfileName</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="n">ParamsDefaultInfo</span> <span class="o">=</span> <span class="n">ParamsDefaultInfoOverride</span><span class="p">)</span>
+  571     
+  572     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+  573     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionOutfileParameters</span><span class="p">(</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">])</span>
+  574     
+  575     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+  576 
+  577     <span class="c1"># Method and basis set...</span>
+  578     <span class="n">ProcessMethodNameAndBasisSetOptions</span><span class="p">()</span>
+  579 
+  580     <span class="c1"># BSSEType option...</span>
+  581     <span class="n">ProcessBSSETypeOption</span><span class="p">()</span>
+  582     
+  583     <span class="c1"># Reference wavefunction...</span>
+  584     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Reference&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reference&quot;</span><span class="p">]</span>
+  585     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ReferenceAuto&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reference&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  586     
+  587     <span class="c1"># Run and options parameters...</span>
+  588     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4OptionsParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">ProcessPsi4OptionsParameters</span><span class="p">(</span><span class="s2">&quot;--psi4OptionsParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--psi4OptionsParams&quot;</span><span class="p">])</span>
+  589     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Psi4RunParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Psi4Util</span><span class="o">.</span><span class="n">ProcessPsi4RunParameters</span><span class="p">(</span><span class="s2">&quot;--psi4RunParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--psi4RunParams&quot;</span><span class="p">],</span> <span class="n">InfileName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+  590 
+  591     <span class="c1"># Interaction energy units...</span>
+  592     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyUnits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyUnits&quot;</span><span class="p">]</span>
+  593     
+  594     <span class="c1"># Total interaction energy label...</span>
+  595     <span class="n">EnergyDataFieldLabel</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyDataFieldLabel&quot;</span><span class="p">]</span>
+  596     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">EnergyDataFieldLabel</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  597         <span class="n">EnergyLabel</span> <span class="o">=</span> <span class="s2">&quot;Psi4_Interaction_Energy&quot;</span>
+  598         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SAPTMode&quot;</span><span class="p">]:</span>
+  599             <span class="n">EnergyLabel</span> <span class="o">=</span> <span class="s2">&quot;Psi4_SAPT_Interaction_Energy&quot;</span>
+  600         <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SNSMP2Mode&quot;</span><span class="p">]:</span>
+  601             <span class="n">EnergyLabel</span> <span class="o">=</span> <span class="s2">&quot;Psi4_SNS-MP2_Interaction_Energy&quot;</span>
+  602         <span class="n">EnergyDataFieldLabel</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">EnergyLabel</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyUnits&quot;</span><span class="p">])</span>
+  603             
+  604     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyDataFieldLabel&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">EnergyDataFieldLabel</span>
+  605 
+  606     <span class="n">ProcessSAPTEnergyDataFieldLabelsOption</span><span class="p">()</span>
+  607 
+  608     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  609     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionMultiprocessingParameters</span><span class="p">(</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">])</span>
+  610     
+  611     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--precision&quot;</span><span class="p">])</span>
+  612     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  613     
+  614 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span>
+  615     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options.&quot;&quot;&quot;</span>
+  616     
+  617     <span class="c1"># Get options...</span>
+  618     <span class="k">global</span> <span class="n">Options</span>
+  619     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+  620     
+  621     <span class="c1"># Set current working directory to the specified directory...</span>
+  622     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+  623     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+  624         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+  625     
+  626     <span class="c1"># Handle examples option...</span>
+  627     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+  628         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+  629         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+  630 
+  631 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+  632     <span class="sd">&quot;&quot;&quot;Validate option values.&quot;&quot;&quot;</span>
+  633     
+  634     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--bsseType&quot;</span><span class="p">],</span> <span class="s2">&quot;CP noCP VMFC None auto&quot;</span><span class="p">)</span>
+  635     
+  636     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--energyUnits&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyUnits&quot;</span><span class="p">],</span> <span class="s2">&quot;Hartrees kcal/mol kJ/mol eV&quot;</span><span class="p">)</span>
+  637     
+  638     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+  639     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd mol&quot;</span><span class="p">)</span>
+  640     
+  641     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd&quot;</span><span class="p">)</span>
+  642     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+  643     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+  644     
+  645     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mp&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  646     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;-p, --precision&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--precision&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  647     
+  648     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-q, --quiet&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  649 
+  650 <span class="c1"># Setup a usage string for docopt...</span>
+  651 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+  652 <span class="s2">Psi4CalculateInteractionEnergy.py - Calculate interaction energy</span>
+  653 
+  654 <span class="s2">Usage:</span>
+  655 <span class="s2">    Psi4CalculateInteractionEnergy.py [--basisSet &lt;text&gt;] [--bsseType &lt;CP, noCP, VMFC, or None&gt;]</span>
+  656 <span class="s2">                                      [--energyDataFieldLabel &lt;text&gt;] [--energySAPTDataFieldLabels &lt;Type,Label,...,...&gt;]</span>
+  657 <span class="s2">                                      [--energyUnits &lt;text&gt;] [--infileParams &lt;Name,Value,...&gt;] [--methodName &lt;text&gt;]</span>
+  658 <span class="s2">                                      [--mp &lt;yes or no&gt;] [--mpParams &lt;Name, Value,...&gt;] [ --outfileParams &lt;Name,Value,...&gt; ]</span>
+  659 <span class="s2">                                      [--overwrite] [--precision &lt;number&gt; ] [--psi4OptionsParams &lt;Name,Value,...&gt;]</span>
+  660 <span class="s2">                                      [--psi4RunParams &lt;Name,Value,...&gt;] [--quiet &lt;yes or no&gt;]</span>
+  661 <span class="s2">                                      [--reference &lt;text&gt;] [-w &lt;dir&gt;] -i &lt;infile&gt; -o &lt;outfile&gt; </span>
+  662 <span class="s2">    Psi4CalculateInteractionEnergy.py -h | --help | -e | --examples</span>
+  663 
+  664 <span class="s2">Description:</span>
+  665 <span class="s2">    Calculate interaction energy for molecules using a specified method name and</span>
+  666 <span class="s2">    basis set. The molecules must contain exactly two fragments or disconnected</span>
+  667 <span class="s2">    components for Symmetry Adapted Perturbation Theory  (SAPT) [ Ref 154-155 ]</span>
+  668 <span class="s2">    and Spin-Network-Scaled MP2 (SNS-MP2) [ Ref 156] calculations and more than</span>
+  669 <span class="s2">    one fragment for all other calculations. An arbitrary number of fragments may be</span>
+  670 <span class="s2">    present in a molecule for Basis Set Superposition Energy (BSSE) correction</span>
+  671 <span class="s2">    calculations.</span>
+  672 
+  673 <span class="s2">    The interaction energy is calculated at SAPT0 / jun-cc-pVDZ level of theory by</span>
+  674 <span class="s2">    default. The SAPT0 calculations are relatively fast but less accurate. You may</span>
+  675 <span class="s2">    want to consider calculating interaction energy at WB97X-D3 / aug-cc-pVTZ,</span>
+  676 <span class="s2">    B3LYP-D3 / aug-cc-pVTZ, or higher level of theory [ Ref 157 ] to improve the</span>
+  677 <span class="s2">    accuracy of your results. The  WB97X-D3 and B3LYP-D3 calculations rely on</span>
+  678 <span class="s2">    the presence of DFTD3 and gCP Psi4 plugins in your environment.</span>
+  679 
+  680 <span class="s2">    The molecules must have 3D coordinates in input file. The molecular geometry</span>
+  681 <span class="s2">    is not optimized before the calculation. In addition, hydrogens must be present</span>
+  682 <span class="s2">    for all molecules in input file. The 3D coordinates are not modified during the</span>
+  683 <span class="s2">    calculation.</span>
+  684 
+  685 <span class="s2">    A Psi4 XYZ format geometry string is automatically generated for each molecule</span>
+  686 <span class="s2">    in input file. It contains atom symbols and 3D coordinates for each atom in a</span>
+  687 <span class="s2">    molecule. In addition, the formal charge and spin multiplicity are present in the</span>
+  688 <span class="s2">    the geometry string. These values are either retrieved from molecule properties</span>
+  689 <span class="s2">    named &#39;FormalCharge&#39; and &#39;SpinMultiplicty&#39; or dynamically calculated for a</span>
+  690 <span class="s2">    molecule. A double dash separates each fragment or component in a molecule.</span>
+  691 <span class="s2">    The same formal charge and multiplicity values are assigned to each fragment</span>
+  692 <span class="s2">    in a molecule.</span>
+  693 
+  694 <span class="s2">    The supported input file formats are: Mol (.mol), SD (.sdf, .sd)</span>
+  695 
+  696 <span class="s2">    The supported output file formats are: SD (.sdf, .sd)</span>
+  697 
+  698 <span class="s2">Options:</span>
+  699 <span class="s2">    -b, --basisSet &lt;text&gt;  [default: auto]</span>
+  700 <span class="s2">        Basis set to use for interaction energy calculation. Default: jun-cc-pVDZ for</span>
+  701 <span class="s2">        SAPT calculations; None for SNS-MP2 calculations to use its default basis</span>
+  702 <span class="s2">        set;  otherwise, it must be explicitly specified using this option. The specified</span>
+  703 <span class="s2">        value must be a valid Psi4 basis set. No validation is performed. You may set</span>
+  704 <span class="s2">        an empty string as a value for the basis set.</span>
+  705 <span class="s2">        </span>
+  706 <span class="s2">        The following list shows a representative sample of basis sets available</span>
+  707 <span class="s2">        in Psi4:</span>
+  708 <span class="s2">            </span>
+  709 <span class="s2">            STO-3G, 6-31G, 6-31+G, 6-31++G, 6-31G*, 6-31+G*,  6-31++G*, </span>
+  710 <span class="s2">            6-31G**, 6-31+G**, 6-31++G**, 6-311G, 6-311+G, 6-311++G,</span>
+  711 <span class="s2">            6-311G*, 6-311+G*, 6-311++G*, 6-311G**, 6-311+G**, 6-311++G**,</span>
+  712 <span class="s2">            cc-pVDZ, cc-pCVDZ, aug-cc-pVDZ, cc-pVDZ-DK, cc-pCVDZ-DK, def2-SVP,</span>
+  713 <span class="s2">            def2-SVPD, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD</span>
+  714 <span class="s2">            </span>
+  715 <span class="s2">    --bsseType &lt;CP, noCP, VMFC, or None&gt;  [default: auto]</span>
+  716 <span class="s2">        Type of Basis Set Superposition Energy (BSSE) correction to apply during the</span>
+  717 <span class="s2">        calculation of interaction energy. Possible values:</span>
+  718 <span class="s2">             </span>
+  719 <span class="s2">            CP: Counterpoise corrected interaction energy</span>
+  720 <span class="s2">            noCP:  Supramolecular interaction energy without any CP correction</span>
+  721 <span class="s2">            VMFC: Valiron-Mayer Function Counterpoise correction</span>
+  722 <span class="s2">            None: The Psi4 option &#39;bsse_type&#39; is not passed to the energy</span>
+  723 <span class="s2">                function during the calculation of interaction energy</span>
+  724 <span class="s2">            </span>
+  725 <span class="s2">        Default values:</span>
+  726 <span class="s2">             </span>
+  727 <span class="s2">            None: SAPT and SNS-MP2 calculations. An explicit bsse_type option is not</span>
+  728 <span class="s2">                valid for these calculations.</span>
+  729 <span class="s2">            HF3c: noCP to use built-in correction</span>
+  730 <span class="s2">            CP: All other calculations</span>
+  731 <span class="s2">            </span>
+  732 <span class="s2">    --energyDataFieldLabel &lt;text&gt;  [default: auto]</span>
+  733 <span class="s2">        Energy data field label for writing interaction energy values. Default:</span>
+  734 <span class="s2">        Psi4_SAPT_Interaction_Energy (&lt;Units&gt;)  for SAPT calculation; </span>
+  735 <span class="s2">        Psi4_SNS-MP2_Interaction_Energy (&lt;Units&gt;) for SNS-MP2 calculation;</span>
+  736 <span class="s2">        otherwise, Psi4_Interaction_Energy (&lt;Units&gt;) </span>
+  737 <span class="s2">    --energySAPTDataFieldLabels &lt;Type,Label,...,...&gt;  [default: auto]</span>
+  738 <span class="s2">        A comma delimted interaction energy type and data field label value pairs</span>
+  739 <span class="s2">        for writing individual components of total SAPT interaction energy.</span>
+  740 <span class="s2">        </span>
+  741 <span class="s2">        The supported SAPT energy types along with their default data field label</span>
+  742 <span class="s2">        values are shown below:</span>
+  743 <span class="s2">            </span>
+  744 <span class="s2">            ElectrostaticEnergy, Psi4_SAPT_Electrostatic_Energy (&lt;Units&gt;),</span>
+  745 <span class="s2">            ExchangeEnergy, Psi4_SAPT_Exchange_Energy (&lt;Units&gt;),</span>
+  746 <span class="s2">            InductionEnergy, Psi4_SAPT_Induction_Energy (&lt;Units&gt;),</span>
+  747 <span class="s2">            DispersionEnergy, Psi4_SAPT_Dispersion_Energy (&lt;Units&gt;)</span>
+  748 <span class="s2">            </span>
+  749 <span class="s2">    --energyUnits &lt;text&gt;  [default: kcal/mol]</span>
+  750 <span class="s2">        Energy units. Possible values: Hartrees, kcal/mol, kJ/mol, or eV.</span>
+  751 <span class="s2">    -e, --examples</span>
+  752 <span class="s2">        Print examples.</span>
+  753 <span class="s2">    -h, --help</span>
+  754 <span class="s2">        Print this help message.</span>
+  755 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+  756 <span class="s2">        Input file name.</span>
+  757 <span class="s2">    --infileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  758 <span class="s2">        A comma delimited list of parameter name and value pairs for reading</span>
+  759 <span class="s2">        molecules from files. The supported parameter names for different file</span>
+  760 <span class="s2">        formats, along with their default values, are shown below:</span>
+  761 <span class="s2">            </span>
+  762 <span class="s2">            SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes</span>
+  763 <span class="s2">            </span>
+  764 <span class="s2">    -m, --methodName &lt;text&gt;  [default: auto]</span>
+  765 <span class="s2">        Method to use for interaction energy calculation. Default: SAPT0. The</span>
+  766 <span class="s2">        specified value must be a valid Psi4 method name. No validation is</span>
+  767 <span class="s2">        performed.</span>
+  768 <span class="s2">        </span>
+  769 <span class="s2">        The following list shows a representative sample of methods available</span>
+  770 <span class="s2">        in Psi4:</span>
+  771 <span class="s2">            </span>
+  772 <span class="s2">            SAPT0, SAPT2, SAPT2+, SAPT2+(CCD), SAPT2+DMP2, SAPT2+(CCD)DMP2</span>
+  773 <span class="s2">            SAPT2+(3), SAPT2+(3)(CCD), SAPT2+DMP2, SAPT2+(CCD)DMP2,</span>
+  774 <span class="s2">            SAPT2+3, SAPT2+3(CCD), SAPT2+(3)DMP2, SAPT2+3(CCD)DMP2, SNS-MP2,</span>
+  775 <span class="s2">            B1LYP, B2PLYP, B2PLYP-D3BJ, B2PLYP-D3MBJ, B3LYP, B3LYP-D3BJ,</span>
+  776 <span class="s2">            B3LYP-D3MBJ, CAM-B3LYP, CAM-B3LYP-D3BJ, HF, HF-D3BJ,  HF3c, M05,</span>
+  777 <span class="s2">            M06, M06-2x, M06-HF, M06-L, MN12-L, MN15, MN15-D3BJ,PBE, PBE0,</span>
+  778 <span class="s2">            PBEH3c, PW6B95, PW6B95-D3BJ, WB97, WB97X, WB97X-D, WB97X-D3BJ</span>
+  779 <span class="s2">            </span>
+  780 <span class="s2">    --mp &lt;yes or no&gt;  [default: no]</span>
+  781 <span class="s2">        Use multiprocessing.</span>
+  782 <span class="s2">         </span>
+  783 <span class="s2">        By default, input data is retrieved in a lazy manner via mp.Pool.imap()</span>
+  784 <span class="s2">        function employing lazy RDKit data iterable. This allows processing of</span>
+  785 <span class="s2">        arbitrary large data sets without any additional requirements memory.</span>
+  786 <span class="s2">        </span>
+  787 <span class="s2">        All input data may be optionally loaded into memory by mp.Pool.map()</span>
+  788 <span class="s2">        before starting worker processes in a process pool by setting the value</span>
+  789 <span class="s2">        of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</span>
+  790 <span class="s2">        </span>
+  791 <span class="s2">        A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input</span>
+  792 <span class="s2">        data mode may adversely impact the performance. The &#39;--mpParams&#39; section</span>
+  793 <span class="s2">        provides additional information to tune the value of &#39;chunkSize&#39;.</span>
+  794 <span class="s2">    --mpParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  795 <span class="s2">        A comma delimited list of parameter name and value pairs to configure</span>
+  796 <span class="s2">        multiprocessing.</span>
+  797 <span class="s2">        </span>
+  798 <span class="s2">        The supported parameter names along with their default and possible</span>
+  799 <span class="s2">        values are shown below:</span>
+  800 <span class="s2">        </span>
+  801 <span class="s2">            chunkSize, auto</span>
+  802 <span class="s2">            inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]</span>
+  803 <span class="s2">            numProcesses, auto   [ Default: mp.cpu_count() ]</span>
+  804 <span class="s2">        </span>
+  805 <span class="s2">        These parameters are used by the following functions to configure and</span>
+  806 <span class="s2">        control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and</span>
+  807 <span class="s2">        mp.Pool.imap().</span>
+  808 <span class="s2">        </span>
+  809 <span class="s2">        The chunkSize determines chunks of input data passed to each worker</span>
+  810 <span class="s2">        process in a process pool by mp.Pool.map() and mp.Pool.imap() functions.</span>
+  811 <span class="s2">        The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</span>
+  812 <span class="s2">        </span>
+  813 <span class="s2">        The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode,</span>
+  814 <span class="s2">        automatically converts RDKit data iterable into a list, loads all data into</span>
+  815 <span class="s2">        memory, and calculates the default chunkSize using the following method</span>
+  816 <span class="s2">        as shown in its code:</span>
+  817 <span class="s2">        </span>
+  818 <span class="s2">            chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)</span>
+  819 <span class="s2">            if extra: chunkSize += 1</span>
+  820 <span class="s2">        </span>
+  821 <span class="s2">        For example, the default chunkSize will be 7 for a pool of 4 worker processes</span>
+  822 <span class="s2">        and 100 data items.</span>
+  823 <span class="s2">        </span>
+  824 <span class="s2">        The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs</span>
+  825 <span class="s2">        &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the</span>
+  826 <span class="s2">        data into memory. Consequently, the size of input data is not known a priori.</span>
+  827 <span class="s2">        It&#39;s not possible to estimate an optimal value for the chunkSize. The default </span>
+  828 <span class="s2">        chunkSize is set to 1.</span>
+  829 <span class="s2">        </span>
+  830 <span class="s2">        The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely</span>
+  831 <span class="s2">        impact the performance due to the overhead associated with exchanging</span>
+  832 <span class="s2">        small chunks of data. It is generally a good idea to explicitly set chunkSize to</span>
+  833 <span class="s2">        a larger value during &#39;Lazy&#39; input data mode, based on the size of your input</span>
+  834 <span class="s2">        data and number of processes in the process pool.</span>
+  835 <span class="s2">        </span>
+  836 <span class="s2">        The mp.Pool.map() function waits for all worker processes to process all</span>
+  837 <span class="s2">        the data and return the results. The mp.Pool.imap() function, however,</span>
+  838 <span class="s2">        returns the the results obtained from worker processes as soon as the</span>
+  839 <span class="s2">        results become available for specified chunks of data.</span>
+  840 <span class="s2">        </span>
+  841 <span class="s2">        The order of data in the results returned by both mp.Pool.map() and </span>
+  842 <span class="s2">        mp.Pool.imap() functions always corresponds to the input data.</span>
+  843 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+  844 <span class="s2">        Output file name.</span>
+  845 <span class="s2">    --outfileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  846 <span class="s2">        A comma delimited list of parameter name and value pairs for writing</span>
+  847 <span class="s2">        molecules to files. The supported parameter names for different file</span>
+  848 <span class="s2">        formats, along with their default values, are shown below:</span>
+  849 <span class="s2">            </span>
+  850 <span class="s2">            SD: kekulize,yes</span>
+  851 <span class="s2">            </span>
+  852 <span class="s2">    --overwrite</span>
+  853 <span class="s2">        Overwrite existing files.</span>
+  854 <span class="s2">    --precision &lt;number&gt;  [default: 6]</span>
+  855 <span class="s2">        Floating point precision for writing energy values.</span>
+  856 <span class="s2">    --psi4OptionsParams &lt;Name,Value,...&gt;  [default: none]</span>
+  857 <span class="s2">        A comma delimited list of Psi4 option name and value pairs for setting</span>
+  858 <span class="s2">        global and module options. The names are &#39;option_name&#39; for global options</span>
+  859 <span class="s2">        and &#39;module_name__option_name&#39; for options local to a module. The</span>
+  860 <span class="s2">        specified option names must be valid Psi4 names. No validation is</span>
+  861 <span class="s2">        performed.</span>
+  862 <span class="s2">        </span>
+  863 <span class="s2">        The specified option name and  value pairs are processed and passed to</span>
+  864 <span class="s2">        psi4.set_options() as a dictionary. The supported value types are float,</span>
+  865 <span class="s2">        integer, boolean, or string. The float value string is converted into a float.</span>
+  866 <span class="s2">        The valid values for a boolean string are yes, no, true, false, on, or off. </span>
+  867 <span class="s2">    --psi4RunParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  868 <span class="s2">        A comma delimited list of parameter name and value pairs for configuring</span>
+  869 <span class="s2">        Psi4 jobs.</span>
+  870 <span class="s2">        </span>
+  871 <span class="s2">        The supported parameter names along with their default and possible</span>
+  872 <span class="s2">        values are shown below:</span>
+  873 <span class="s2">             </span>
+  874 <span class="s2">            MemoryInGB, 1</span>
+  875 <span class="s2">            NumThreads, 1</span>
+  876 <span class="s2">            OutputFile, auto   [ Possible  values: stdout, quiet, or FileName ]</span>
+  877 <span class="s2">            ScratchDir, auto   [ Possivle values: DirName]</span>
+  878 <span class="s2">            RemoveOutputFile, yes   [ Possible values: yes, no, true, or false]</span>
+  879 <span class="s2">            </span>
+  880 <span class="s2">        These parameters control the runtime behavior of Psi4.</span>
+  881 <span class="s2">        </span>
+  882 <span class="s2">        The default file name for &#39;OutputFile&#39; is &lt;InFileRoot&gt;_Psi4.out. The PID</span>
+  883 <span class="s2">        is appended to output file name during multiprocessing as shown:</span>
+  884 <span class="s2">        &lt;InFileRoot&gt;_Psi4_&lt;PIDNum&gt;.out. The &#39;stdout&#39; value for &#39;OutputType&#39;</span>
+  885 <span class="s2">        sends Psi4 output to stdout. The &#39;quiet&#39; or &#39;devnull&#39; value suppresses</span>
+  886 <span class="s2">        all Psi4 output.</span>
+  887 <span class="s2">        </span>
+  888 <span class="s2">        The default &#39;Yes&#39; value of &#39;RemoveOutputFile&#39; option forces the removal</span>
+  889 <span class="s2">        of any existing Psi4 before creating new files to append output from</span>
+  890 <span class="s2">        multiple Psi4 runs.</span>
+  891 <span class="s2">        </span>
+  892 <span class="s2">        The option &#39;ScratchDir&#39; is a directory path to the location of scratch</span>
+  893 <span class="s2">        files. The default value corresponds to Psi4 default. It may be used to</span>
+  894 <span class="s2">        override the deafult path.</span>
+  895 <span class="s2">    -q, --quiet &lt;yes or no&gt;  [default: no]</span>
+  896 <span class="s2">        Use quiet mode. The warning and information messages will not be printed.</span>
+  897 <span class="s2">    -r, --reference &lt;text&gt;  [default: auto]</span>
+  898 <span class="s2">        Reference wave function to use for interaction energy calculation. Default: RHF</span>
+  899 <span class="s2">        or UHF. The default values are Restricted Hartree-Fock (RHF) for closed-shell</span>
+  900 <span class="s2">        molecules with all electrons paired and Unrestricted Hartree-Fock (UHF) for</span>
+  901 <span class="s2">       open-shell molecules with unpaired electrons.</span>
+  902 <span class="s2">        </span>
+  903 <span class="s2">        The specified value must be a valid Psi4 reference wave function. No validation</span>
+  904 <span class="s2">        is performed. For example: ROHF, CUHF, RKS, etc.</span>
+  905 <span class="s2">        </span>
+  906 <span class="s2">        The spin multiplicity determines the default value of reference wave function</span>
+  907 <span class="s2">        for input molecules. It is calculated from number of free radical electrons using</span>
+  908 <span class="s2">        Hund&#39;s rule of maximum multiplicity defined as 2S + 1 where S is the total</span>
+  909 <span class="s2">        electron spin. The total spin is 1/2 the number of free radical electrons in a </span>
+  910 <span class="s2">        molecule. The value of &#39;SpinMultiplicity&#39; molecule property takes precedence</span>
+  911 <span class="s2">        over the calculated value of spin multiplicity.</span>
+  912 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+  913 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+  914 
+  915 <span class="s2">Examples:</span>
+  916 <span class="s2">    To calculate interaction energy using SAPT0/aug-cc-pVDZ for molecules in a</span>
+  917 <span class="s2">    SD file, use RHF and UHF for closed-shell and open-shell molecules, and write</span>
+  918 <span class="s2">    a new SD file, type:</span>
+  919 
+  920 <span class="s2">        % Psi4CalculateInteractionEnergy.py -i Psi4SampleDimers3D.sdf</span>
+  921 <span class="s2">          -o Psi4SampleDimers3DOut.sdf</span>
+  922 
+  923 <span class="s2">    To run the first example for freezing core electrons and setting SCF type to DF</span>
+  924 <span class="s2">    and write out a new SD file, type:</span>
+  925 
+  926 <span class="s2">        % Psi4CalculateInteractionEnergy.py --psi4OptionsParams &quot;scf_type, df,</span>
+  927 <span class="s2">          freeze_core, true&quot; -i Psi4SampleDimers3D.sdf -o</span>
+  928 <span class="s2">          Psi4SampleDimers3DOut.sdf</span>
+  929 
+  930 <span class="s2">    To calculate interaction energy using SNS2-MP methodology for molecules</span>
+  931 <span class="s2">    in a SD containing 3D structures and write a new SD file, type:</span>
+  932 
+  933 <span class="s2">        % Psi4CalculateInteractionEnergy.py -m &quot;sns-mp2&quot;</span>
+  934 <span class="s2">          -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  935 
+  936 <span class="s2">    To calculate interaction energy at WB97X-D3/aug-cc-pVTZ level of theory,</span>
+  937 <span class="s2">    along with explicit Psi4 run time paramaters, for molecules in a SD containing</span>
+  938 <span class="s2">    3D structures and write a new SD file, type:</span>
+  939 
+  940 <span class="s2">        % Psi4CalculateInteractionEnergy.py -m WB97X-D3 -b aug-cc-pVTZ</span>
+  941 <span class="s2">          --bsseType CP --psi4RunParams &quot;NumThreads,4,MemoryInGB,6&quot;</span>
+  942 <span class="s2">          -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  943 
+  944 <span class="s2">    To calculate interaction energy at  B3LYP-D3/aug-cc-pVTZ level of theory using</span>
+  945 <span class="s2">    default Psi4 run time paramaters for molecules in a SD containing 3D structures</span>
+  946 <span class="s2">    and write a new SD file, type:</span>
+  947 
+  948 <span class="s2">        % Psi4CalculateInteractionEnergy.py -m B3LYP-D3 -b aug-cc-pVTZ</span>
+  949 <span class="s2">          --bsseType CP -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  950 
+  951 <span class="s2">    To calculate interaction energy at  B3LYP-D3/aug-cc-pVTZ level of theory, along</span>
+  952 <span class="s2">    with specifying grid resolution using Psi4 options and explicit Psi4 run time</span>
+  953 <span class="s2">    paramaters, for molecules in a SD containing 3D structures</span>
+  954 <span class="s2">    and write a new SD file, type:</span>
+  955 
+  956 <span class="s2">        % Psi4CalculateInteractionEnergy.py -m B3LYP-D3 -b aug-cc-pVTZ</span>
+  957 <span class="s2">          --bsseType CP --psi4OptionsParams &quot;dft_spherical_points, 302,</span>
+  958 <span class="s2">          dft_radial_points, 75&quot; --psi4RunParams &quot;NumThreads,4,MemoryInGB,6&quot;</span>
+  959 <span class="s2">          -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  960 
+  961 <span class="s2">    To calculate interaction energy at  HF3c level of theory using built-in basis set</span>
+  962 <span class="s2">    for molecules in a SD containing 3D structures and write a new SD file, type:</span>
+  963 
+  964 <span class="s2">        % Psi4CalculateInteractionEnergy.py -m HF3c -b &quot;&quot; --bsseType noCP</span>
+  965 <span class="s2">          -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  966 <span class="s2">      </span>
+  967 <span class="s2">    To calculate interaction energy at  CCSD(T)/aug-cc-pVDZ level of theory using</span>
+  968 <span class="s2">    default Psi4 run time paramaters for molecules in a SD containing 3D structures</span>
+  969 <span class="s2">    and write a new SD file, type:</span>
+  970 
+  971 <span class="s2">        % Psi4CalculateInteractionEnergy.py -m &quot;ccsd(t)&quot; -b &quot;aug-cc-pvdz&quot;</span>
+  972 <span class="s2">          -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  973 
+  974 <span class="s2">    To run the first example in multiprocessing mode on all available CPUs</span>
+  975 <span class="s2">    without loading all data into memory and write out a SD file, type:</span>
+  976 
+  977 <span class="s2">        % Psi4CalculateInteractionEnergy.py --mp yes -i Psi4SampleDimers3D.sdf</span>
+  978 <span class="s2">          -o Psi4SampleDimers3DOut.sdf</span>
+  979 
+  980 <span class="s2">    To run the first example in multiprocessing mode on all available CPUs</span>
+  981 <span class="s2">    by loading all data into memory and write out a SD file, type:</span>
+  982 
+  983 <span class="s2">        % Psi4CalculateInteractionEnergy.py  --mp yes --mpParams &quot;inputDataMode,</span>
+  984 <span class="s2">          InMemory&quot; -i Psi4SampleDimers3D.sdf  -o Psi4SampleDimers3DOut.sdf</span>
+  985 
+  986 <span class="s2">    To run the first example in multiprocessing mode on all available CPUs</span>
+  987 <span class="s2">    without loading all data into memory along with multiple threads for each</span>
+  988 <span class="s2">    Psi4 run and write out a SD file, type:</span>
+  989 
+  990 <span class="s2">        % Psi4CalculateInteractionEnergy.py --mp yes --psi4RunParams &quot;NumThreads,2&quot;</span>
+  991 <span class="s2">          -i Psi4SampleDimers3D.sdf -o Psi4SampleDimers3DOut.sdf</span>
+  992 
+  993 <span class="s2">Author:</span>
+  994 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+  995 
+  996 <span class="s2">See also:</span>
+  997 <span class="s2">    Psi4CalculateEnergy.py, Psi4CalculatePartialCharges.py, Psi4PerformMinimization.py,</span>
+  998 <span class="s2">    Psi4GenerateConformers.py</span>
+  999 
+ 1000 <span class="s2">Copyright:</span>
+ 1001 <span class="s2">    Copyright (C) 2022 Manish Sud. All rights reserved.</span>
+ 1002 
+ 1003 <span class="s2">    The functionality available in this script is implemented using Psi4, an</span>
+ 1004 <span class="s2">    open source quantum chemistry software package, and RDKit, an open</span>
+ 1005 <span class="s2">    source toolkit for cheminformatics developed by Greg Landrum.</span>
+ 1006 
+ 1007 <span class="s2">    This file is part of MayaChemTools.</span>
+ 1008 
+ 1009 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 1010 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 1011 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 1012 <span class="s2">    later version.</span>
+ 1013 
+ 1014 <span class="s2">&quot;&quot;&quot;</span>
+ 1015 
+ 1016 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 1017     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

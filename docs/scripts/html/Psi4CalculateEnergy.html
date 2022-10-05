@@ -1,0 +1,189 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:Psi4CalculateEnergy.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PathLengthFingerprints.html" title="PathLengthFingerprints.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./Psi4CalculateInteractionEnergy.html" title="Psi4CalculateInteractionEnergy.html">Next</a></td><td width="34%" align="middle"><strong>Psi4CalculateEnergy.py</strong></td><td width="33%" align="right"><a href="././code/Psi4CalculateEnergy.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/Psi4CalculateEnergy.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/Psi4CalculateEnergy.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>Psi4CalculateEnergy.py - Calculate single point energy</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>Psi4CalculateEnergy.py [<b>--basisSet</b> &lt;text&gt;] [<b>--energyDataFieldLabel</b> &lt;text&gt;] [<b>--energyUnits</b> &lt;text&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--methodName</b> &lt;text&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name, Value,...&gt;] [ <b>--outfileParams</b> &lt;Name,Value,...&gt; ] [<b>--overwrite</b>] [<b>--precision</b> &lt;number&gt;] [<b>--psi4OptionsParams</b> &lt;Name,Value,...&gt;] [<b>--psi4RunParams</b> &lt;Name,Value,...&gt;] [<b>--quiet</b> &lt;yes or no&gt;] [<b>--reference</b> &lt;text&gt;] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>Psi4CalculateEnergy.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Calculate single point energy for molecules using a specified method name and basis set. The molecules must have 3D coordinates in input file. The molecular geometry is not optimized before the calculation. In addition, hydrogens must be present for all molecules in input file. The 3D coordinates are not modified during the calculation.</p>
+<p>A Psi4 XYZ format geometry string is automatically generated for each molecule in input file. It contains atom symbols and 3D coordinates for each atom in a molecule. In addition, the formal charge and spin multiplicity are present in the the geometry string. These values are either retrieved from molecule properties named &#39;FormalCharge&#39; and &#39;SpinMultiplicty&#39; or dynamically calculated for a molecule.</p>
+<p>The supported input file formats are: Mol (.mol), SD (.sdf, .sd)</p>
+<p>The supported output file formats are: SD (.sdf, .sd)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="b---basisSet-text-default:-auto"><b>-b, --basisSet</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Basis set to use for energy calculation. Default: 6-31+G** for sulfur containing molecules; Otherwise, 6-31G** [ Ref 150 ]. The specified value must be a valid Psi4 basis set. No validation is performed.</p>
+<p>The following list shows a representative sample of basis sets available in Psi4:</p>
+<div class="OptionsBox">    STO-3G, 6-31G, 6-31+G, 6-31++G, 6-31G*, 6-31+G*,  6-31++G*, 
+<br/>    6-31G**, 6-31+G**, 6-31++G**, 6-311G, 6-311+G, 6-311++G,
+<br/>    6-311G*, 6-311+G*, 6-311++G*, 6-311G**, 6-311+G**, 6-311++G**,
+<br/>    cc-pVDZ, cc-pCVDZ, aug-cc-pVDZ, cc-pVDZ-DK, cc-pCVDZ-DK, def2-SVP,
+<br/>    def2-SVPD, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD
+<br/>    </div>
+</dd>
+<dt id="energyDataFieldLabel-text-default:-auto"><b>--energyDataFieldLabel</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Energy data field label for writing energy values. Default: Psi4_Energy (&lt;Units&gt;).</p>
+</dd>
+<dt id="energyUnits-text-default:-kcal-mol"><b>--energyUnits</b> &lt;text&gt; [default: kcal/mol]</dt>
+<dd>
+<p>Energy units. Possible values: Hartrees, kcal/mol, kJ/mol, or eV.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes
+<br/>    </div>
+</dd>
+<dt id="m---methodName-text-default:-auto"><b>-m, --methodName</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Method to use for energy calculation. Default: B3LYP [ Ref 150 ]. The specified value must be a valid Psi4 method name. No validation is performed.</p>
+<p>The following list shows a representative sample of methods available in Psi4:</p>
+<div class="OptionsBox">    B1LYP, B2PLYP, B2PLYP-D3BJ, B2PLYP-D3MBJ, B3LYP, B3LYP-D3BJ,
+<br/>    B3LYP-D3MBJ, CAM-B3LYP, CAM-B3LYP-D3BJ, HF, HF-D3BJ,  HF3c, M05,
+<br/>    M06, M06-2x, M06-HF, M06-L, MN12-L, MN15, MN15-D3BJ,PBE, PBE0,
+<br/>    PBEH3c, PW6B95, PW6B95-D3BJ, WB97, WB97X, WB97X-D, WB97X-D3BJ
+<br/>    </div>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: kekulize,yes
+<br/>    </div>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="precision-number-default:-6"><b>--precision</b> &lt;number&gt; [default: 6]</dt>
+<dd>
+<p>Floating point precision for writing energy values.</p>
+</dd>
+<dt id="psi4OptionsParams-Name-Value-...-default:-none"><b>--psi4OptionsParams</b> &lt;Name,Value,...&gt; [default: none]</dt>
+<dd>
+<p>A comma delimited list of Psi4 option name and value pairs for setting global and module options. The names are &#39;option_name&#39; for global options and &#39;module_name__option_name&#39; for options local to a module. The specified option names must be valid Psi4 names. No validation is performed.</p>
+<p>The specified option name and value pairs are processed and passed to psi4.set_options() as a dictionary. The supported value types are float, integer, boolean, or string. The float value string is converted into a float. The valid values for a boolean string are yes, no, true, false, on, or off.</p>
+</dd>
+<dt id="psi4RunParams-Name-Value-...-default:-auto"><b>--psi4RunParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for configuring Psi4 jobs.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    MemoryInGB, 1
+<br/>    NumThreads, 1
+<br/>    OutputFile, auto   [ Possible  values: stdout, quiet, or FileName ]
+<br/>    ScratchDir, auto   [ Possivle values: DirName]
+<br/>    RemoveOutputFile, yes   [ Possible values: yes, no, true, or false]
+<br/>    </div>
+<p>These parameters control the runtime behavior of Psi4.</p>
+<p>The default file name for &#39;OutputFile&#39; is &lt;InFileRoot&gt;_Psi4.out. The PID is appended to output file name during multiprocessing as shown: &lt;InFileRoot&gt;_Psi4_&lt;PIDNum&gt;.out. The &#39;stdout&#39; value for &#39;OutputType&#39; sends Psi4 output to stdout. The &#39;quiet&#39; or &#39;devnull&#39; value suppresses all Psi4 output.</p>
+<p>The default &#39;Yes&#39; value of &#39;RemoveOutputFile&#39; option forces the removal of any existing Psi4 before creating new files to append output from multiple Psi4 runs.</p>
+<p>The option &#39;ScratchDir&#39; is a directory path to the location of scratch files. The default value corresponds to Psi4 default. It may be used to override the deafult path.</p>
+</dd>
+<dt id="q---quiet-yes-or-no-default:-no"><b>-q, --quiet</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use quiet mode. The warning and information messages will not be printed.</p>
+</dd>
+<dt id="r---reference-text-default:-auto"><b>-r, --reference</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Reference wave function to use for energy calculation. Default: RHF or UHF. The default values are Restricted Hartree-Fock (RHF) for closed-shell molecules with all electrons paired and Unrestricted Hartree-Fock (UHF) for open-shell molecules with unpaired electrons.</p>
+<p>The specified value must be a valid Psi4 reference wave function. No validation is performed. For example: ROHF, CUHF, RKS, etc.</p>
+<p>The spin multiplicity determines the default value of reference wave function for input molecules. It is calculated from number of free radical electrons using Hund&#39;s rule of maximum multiplicity defined as 2S + 1 where S is the total electron spin. The total spin is 1/2 the number of free radical electrons in a molecule. The value of &#39;SpinMultiplicity&#39; molecule property takes precedence over the calculated value of spin multiplicity.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To calculate single point energy using B3LYP/6-31G** and B3LYP/6-31+G** for non-sulfur and sulfur containing molecules in a SD file with 3D structures, use RHF and UHF for closed-shell and open-shell molecules, and write a new SD file, type:</p>
+<div class="ExampleBox">    % Psi4CalculateEnergy.py  -i Psi4Sample3D.sdf  -o Psi4Sample3DOut.sdf</div>
+<p>To run the first example in multiprocessing mode on all available CPUs without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4CalculateEnergy.py --mp yes -i Psi4Sample3D.sdf
+      -o Psi4Sample3DOut.sdf</div>
+<p>To run the first example in multiprocessing mode on all available CPUs by loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4CalculateEnergy.py  --mp yes --mpParams &quot;inputDataMode,
+      InMemory&quot; -i Psi4Sample3D.sdf  -o Psi4Sample3DOut.sdf</div>
+<p>To run the first example in multiprocessing mode on all available CPUs without loading all data into memory along with multiple threads for each Psi4 run and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4CalculateEnergy.py --mp yes --psi4RunParams &quot;NumThreads,2&quot;
+       -i Psi4Sample3D.sdf -o Psi4Sample3DOut.sdf</div>
+<p>To calculate single point energy using a specific method and basis set for molecules in a SD containing 3D structures and write a new SD file, type:</p>
+<div class="ExampleBox">    % Psi4CalculateEnergy.py  -m SCF -b aug-cc-pVDZ -i Psi4Sample3D.sdf
+      -o Psi4Sample3DOut.sdf</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./Psi4CalculatePartialCharges.html">Psi4CalculatePartialCharges.py</a>, <a href="./Psi4PerformMinimization.html">Psi4PerformMinimization.py</a>, <a href="./Psi4GenerateConformers.html">Psi4GenerateConformers.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using Psi4, an open source quantum chemistry software package, and RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PathLengthFingerprints.html" title="PathLengthFingerprints.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./Psi4CalculateInteractionEnergy.html" title="Psi4CalculateInteractionEnergy.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>Psi4CalculateEnergy.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

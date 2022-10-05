@@ -1,0 +1,287 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitStandardizeMolecules.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitSearchSMARTS.html" title="RDKitSearchSMARTS.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./SDFilesToHTML.html" title="SDFilesToHTML.html">Next</a></td><td width="34%" align="middle"><strong>RDKitStandardizeMolecules.py</strong></td><td width="33%" align="right"><a href="././code/RDKitStandardizeMolecules.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitStandardizeMolecules.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitStandardizeMolecules.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitStandardizeMolecules.py - Standardize molecules</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitStandardizeMolecules.py [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--methodologyParams</b> &lt;Name,Value,...&gt;] [<b>--mode</b> &lt;standardize or count&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name,Value,...&gt;] [<b>--outfileParams</b> &lt;Name,Value,...&gt; ] [<b>--overwrite</b>] [<b>--standardizeParams</b> &lt;Name,Value,...&gt;] [<b>--quiet</b> &lt;yes or no&gt;] [<b>-w</b> &lt;dir&gt;] [<b>-o</b> &lt;outfile&gt;] <b>-i</b> &lt;infile&gt;</p>
+<p>RDKitStandardizeMolecules.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Standardize molecules and write them out to an output file or simply count the number of molecules to be standardized. The standardization methodology consists of the following 4 steps executed in a sequential manner:</p>
+<div class="OptionsBox">    1. Cleanup molecules
+<br/>    2. Keep largest fragment
+<br/>    3. Neutralize molecules
+<br/>    4. Select canonical tautomer
+<br/>    </div>
+<p>The molecules are cleaned up by performing the following actions:</p>
+<div class="OptionsBox">    1. Remove hydrogens
+<br/>    2. Disconnect metal atoms - Disconnect metal atoms covalently bonded
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        to non-metals
+<br/>    3. Normalize - Normalize functional groups and recombine charges
+<br/>    4. Reionize - Ionize strongest acid groups first in partially
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ionized molecules
+<br/>    5. Assign stereochemistry
+<br/>    </div>
+<p>You may optionally skip any cleanup action during standardization.</p>
+<p>The supported input file formats are: SD (.sdf, .sd), SMILES (.smi., csv, .tsv, .txt)</p>
+<p>The supported output file formats are: SD (.sdf, .sd), SMILES (.smi)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes
+<br/>    SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,auto,sanitize,yes
+<br/>    </div>
+<p>Possible values for smilesDelimiter: space, comma or tab.</p>
+</dd>
+<dt id="m---mode-standardize-or-count-default:-standardize"><b>-m, --mode</b> &lt;standardize or count&gt; [default: standardize]</dt>
+<dd>
+<p>Specify whether to standardize molecules and write them out or simply count the number of molecules being standardized.</p>
+</dd>
+<dt id="methodologyParams-Name-Value-...-default:-auto"><b>--methodologyParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to control the execution of different steps in the standardization methodology. The supported parameter names along with their default values are shown below:</p>
+<div class="OptionsBox">    cleanup,yes,removeFragments,yes,neutralize,yes,
+<br/>    canonicalizeTautomer,yes
+<br/>    </div>
+<p>The standardization methodology consists of the following 4 steps executed in a sequential manner starting from step 1:</p>
+<div class="OptionsBox">    1. cleanup
+<br/>    2. removeFragments
+<br/>    3. neutralize
+<br/>    4. canonicalizeTautomer
+<br/>    </div>
+<p>You may optionally skip the execution of any standardization step.</p>
+<p>The step1, cleanup, performs the following actions:</p>
+<div class="OptionsBox">    1. Remove hydrogens
+<br/>    2. Disconnect metal atoms - Disconnect metal atoms covalently bonded
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        to non-metals
+<br/>    3. Normalize - Normalize functional groups and recombine charges
+<br/>    4. Reionize - Ionize strongest acid groups first in partially
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ionized molecules
+<br/>    5. Assign stereochemistry
+<br/>    </div>
+<p>You may optionally skip any cleanup action using &#39;-s, --standardize&#39; option.</p>
+<p>The step2, removeFragments, employs rdMolStandardize.FragmentParent() function to keep the largest fragment.</p>
+<p>The step3, neutralize, uses rdMolStandardize.Uncharger().uncharge() function to neutralize molecules by adding/removing hydrogens.</p>
+<p>The step4, canonicalizeTautomer, relies on Canonicalize() function availabe via rdMolStandardize.TautomerEnumerator() to select a canonical tautomer.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: compute2DCoords,auto,kekulize,yes
+<br/>    SMILES: smilesKekulize,no,smilesDelimiter,space, smilesIsomeric,yes,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no
+<br/>    </div>
+<p>Default value for compute2DCoords: yes for SMILES input file; no for all other file types.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="q---quiet-yes-or-no-default:-no"><b>-q, --quiet</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use quiet mode. The warning and information messages will not be printed.</p>
+</dd>
+<dt id="s---standardizeParams-Name-Value-...-default:-auto"><b>-s, --standardizeParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for standardizing molecules. The supported parameter names along with their default values are shown below:</p>
+<div class="OptionsBox">    acidbaseFile,none,fragmentFile,none,normalizationsFile,none,
+<br/>    tautomerTransformsFile,none,
+<br/>    cleanupRemoveHydrogens,yes,cleanupDisconnectMetals,yes,
+<br/>    cleanupNormalize,yes,cleanupNormalizeMaxRestarts,200,
+<br/>    cleanupReionize,yes,cleanupAssignStereo,yes,
+<br/>    cleanupAssignStereoCleanIt,yes,cleanupAssignStereoForce,yes
+<br/>    largestFragmentChooserUseAtomCount,yes,
+<br/>    largestFragmentChooserCountHeavyAtomsOnly,no,preferOrganic,no,
+<br/>    doCanonical,yes,
+<br/>    maxTautomers,1000,maxTransforms,1000,
+<br/>    tautomerRemoveBondStereo,yes,tautomerRemoveIsotopicHs,yes
+<br/>    tautomerRemoveSp3Stereo,yes,tautomerReassignStereo,yes
+<br/>    </div>
+<p>A brief description of the standardization parameters, taken from RDKit documentation, is as follows:</p>
+<div class="OptionsBox">    acidbaseFile - File containing acid and base definitions
+<br/>    fragmentFile - File containing fragment definitions
+<br/>    normalizationsFile - File conataining normalization transformations
+<br/>    tautomerTransformsFile - File containing tautomer transformations
+<br/>    
+<br/>    cleanupRemoveHydrogens - Remove hydrogens druring cleanup
+<br/>    cleanupDisconnectMetals - Disconnect metal atoms covalently bonded
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        to non-metals during cleanup
+<br/>    cleanupNormalize - Normalize functional groups and recombine
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        charges during cleanup
+<br/>    cleanupNormalizeMaxRestarts - Maximum number of restarts during
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        normalization step of cleanup
+<br/>    cleanupReionize -Ionize strongest acid groups first in partially
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ionized molecules during cleanup
+<br/>    cleanupAssignStereo - Assign stererochemistry during cleanup
+<br/>    cleanupAssignStereoCleanIt - Clean property _CIPCode during
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        assign stereochemistry 
+<br/>    cleanupAssignStereoForce - Always perform stereochemistry
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        calculation during assign stereochemistry
+<br/>    
+<br/>    largestFragmentChooserUseAtomCount - Use atom count as main
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        criterion before molecular weight to determine largest fragment
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        in LargestFragmentChooser
+<br/>    largestFragmentChooserCountHeavyAtomsOnly - Count only heavy
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        atoms to determine largest fragment in LargestFragmentChooser
+<br/>    preferOrganic - Prefer organic fragments over  inorganic ones when
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        choosing fragments
+<br/>    
+<br/>    doCanonical - Apply atom-order dependent normalizations in a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        canonical order during uncharging
+<br/>    
+<br/>    maxTautomers - Maximum number of tautomers to generate
+<br/>    maxTransforms - Maximum number of transforms to apply during
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        tautomer enumeration
+<br/>    tautomerRemoveBondStereo - Remove stereochemistry from double bonds
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        involved in tautomerism
+<br/>    tautomerRemoveIsotopicHs: Remove isotopic Hs from centers involved in tautomerism
+<br/>    tautomerRemoveSp3Stereo - Remove stereochemistry from sp3 centers
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        involved in tautomerism
+<br/>    tautomerReassignStereo - AssignStereochemistry on all generated tautomers
+<br/>    </div>
+<p>The default value is set to none for the following file name parameters: acidbaseFile, fragmentFile, normalizationsFile, and tautomerTransformsFile. The script relies on RDKit to automatically load appropriate acid base and fragment definitions along with normalization and tautomer transformations from a set of internal catalogs.</p>
+<p>Note: The fragmentFile doesn&#39;t appear to be used by the RDKit method rdMolStandardize.FragmentParent() to find largest fragment.</p>
+<p>The contents of various standardization definitions and transformations files are described below:</p>
+<div class="OptionsBox">    acidbaseFile - File containing acid and base definitions
+<br/>    
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        // Name     Acid                 Base
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        -OSO3H      OS(=O)(=O)[OH]       OS(=O)(=O)[O-]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        -SO3H       [!O]S(=O)(=O)[OH]    [!O]S(=O)(=O)[O-]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        -OSO2H      O[SD3](=O)[OH]       O[SD3](=O)[O-]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ... ... ...
+<br/>
+<br/>    fragmentFile - File containing fragment definitions
+<br/>    
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        // Name     SMARTS
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        hydrogen     [H]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        fluorine     [F]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        chlorine     [Cl]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ... ... ...
+<br/>
+<br/>    normalizationsFile - File conataining normalization transformations
+<br/>    
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        // Name     SMIRKS
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Sulfone to S(=O)(=O)        [S+2:1]([O-:2])([O-:3])&gt;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            [S+0:1](=[O-0:2])(=[O-0:3])
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Pyridine oxide to n+O-     [n:1]=[O:2]&gt;&gt;[n+:1][O-:2]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ... ... ...
+<br/>
+<br/>    tautomerTransformsFile - File containing tautomer transformations
+<br/>    
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        // Name                SMARTS   Bonds  Charges
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        1,3 (thio)keto/enol f  [CX4!H0]-[C]=[O,S,Se,Te;X1]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        1,3 (thio)keto/enol r  [O,S,Se,Te;X2!H0]-[C]=[C]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        1,5 (thio)keto/enol f  [CX4,NX3;!H0]-[C]=[C][CH0]=[O,S,Se,Te;X1]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ... ... ...
+<br/>    </div>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To standardize molecules in a SMILES file by executing all standardization steps and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py -i Sample.smi -o SampleOut.smi</div>
+<p>To standardize molecules in a SD file by executing all standardization steps, performing standardization in multiprocessing mode on all available CPUs without loading all data into memory, and write out and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py --mp yes -i Sample.sdf -o SampleOut.sdf</div>
+<p>To standardize molecules in a SMILES file by executing all standardization steps, performing standardization in multiprocessing mode on all available CPUs by loading all data into memory, and write out and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py --mp yes --mpParams &quot;inputDataMode,
+      InMemory&quot; -i Sample.smi -o SampleOut.smi</div>
+<p>To standardize molecules in a SMILES file by executing all standardization steps, performing standardization in multiprocessing mode on specific number of CPUs and chunk size without loading all data into memory, and write out a a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py --mp yes --mpParams &quot;inputDataMode,Lazy,
+      numProcesses,4,chunkSize,8&quot; -i Sample.smi -o SampleOut.smi</div>
+<p>To count number of molecules to be standardized without generating any output file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py -m count -i Sample.sdf</div>
+<p>To standardize molecules in a SD file by executing specific standardization steps along with explicit values for various parameters to control the standardization behavior, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py --methodologyParams &quot;cleanup,yes,
+      removeFragments,yes,neutralize,yes,canonicalizeTautomer,yes&quot;
+      --standardizeParams &quot;cleanupRemoveHydrogens,yes,
+      cleanupDisconnectMetals,yes,cleanupNormalize,yes,
+      cleanupNormalizeMaxRestarts,200,cleanupReionize,yes,
+      cleanupAssignStereo,yes,largestFragmentChooserUseAtomCount,yes,
+      doCanonical,yes,maxTautomers,1000&quot;
+      -i Sample.sdf -o SampleOut.sdf</div>
+<p>To standardize molecules in a CSV SMILES file, SMILES strings in column 1, name in column 2, and generate output SD file, type:</p>
+<div class="ExampleBox">    % RDKitStandardizeMolecules.py --infileParams 
+      &quot;smilesDelimiter,comma,smilesTitleLine,yes,smilesColumn,1,
+      smilesNameColumn,2&quot; --outfileParams &quot;compute2DCoords,yes&quot;
+      -i SampleSMILES.csv -o SampleOut.sdf</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitEnumerateTautomers.html">RDKitEnumerateTautomers.py</a>, <a href="./RDKitRemoveDuplicateMolecules.html">RDKitRemoveDuplicateMolecules.py</a>, <a href="./RDKitRemoveInvalidMolecules.html">RDKitRemoveInvalidMolecules.py</a>, <a href="./RDKitRemoveSalts.html">RDKitRemoveSalts.py</a>, <a href="./RDKitSearchFunctionalGroups.html">RDKitSearchFunctionalGroups.py</a>, <a href="./RDKitSearchSMARTS.html">RDKitSearchSMARTS.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitSearchSMARTS.html" title="RDKitSearchSMARTS.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./SDFilesToHTML.html" title="SDFilesToHTML.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>RDKitStandardizeMolecules.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

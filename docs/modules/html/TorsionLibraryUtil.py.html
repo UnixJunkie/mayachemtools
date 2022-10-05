@@ -1,0 +1,307 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:Python/TorsionLibraryUtil.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitUtil.py.html" title="RDKitUtil.py.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./SDFileUtil.html" title="SDFileUtil.html">Next</a></td><td width="34%" align="middle"><strong>Python/TorsionLibraryUtil.py</strong></td><td width="33%" align="right"><a href="././code/TorsionLibraryUtil.py.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/TorsionLibraryUtil.py.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/TorsionLibraryUtil.py.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>TorsionLibraryUtil</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>import TorsionLibraryUtil</p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p><b>TorsionLibraryUtil</b> module provides the following functions:</p>
+<p>
+ <a href="#CalculateTorsionAngleDifference">CalculateTorsionAngleDifference</a>, <a href="#DoesSMARTSContainValidSubClassMappedAtoms">DoesSMARTSContainValidSubClassMappedAtoms</a>, <a href="#DoesSMARTSContainValidTorsionRuleMappedAtoms">DoesSMARTSContainValidTorsionRuleMappedAtoms</a>, <a href="#DoesSMARTSContainsMappedAtoms">DoesSMARTSContainsMappedAtoms</a>, <a href="#GetGenericHierarchyClassElementNode">GetGenericHierarchyClassElementNode</a>, <a href="#IdentifyRotatableBondsForTorsionLibraryMatch">IdentifyRotatableBondsForTorsionLibraryMatch</a>, <a href="#IsSpecificHierarchyClass">IsSpecificHierarchyClass</a>, <a href="#ListTorsionLibraryInfo">ListTorsionLibraryInfo</a>, <a href="#RemoveLastHierarchyClassElementNodeFromTracking">RemoveLastHierarchyClassElementNodeFromTracking</a>, <a href="#RemoveLastHierarchySubClassElementNodeFromTracking">RemoveLastHierarchySubClassElementNodeFromTracking</a>, <a href="#RetrieveTorsionLibraryInfo">RetrieveTorsionLibraryInfo</a>, <a href="#SetupHierarchyClassAndSubClassNamesForRotatableBond">SetupHierarchyClassAndSubClassNamesForRotatableBond</a>, <a href="#SetupHierarchySubClassElementPatternMol">SetupHierarchySubClassElementPatternMol</a>, <a href="#SetupTorsionLibraryInfoForMatchingRotatableBonds">SetupTorsionLibraryInfoForMatchingRotatableBonds</a>, <a href="#SetupTorsionRuleAnglesInfo">SetupTorsionRuleAnglesInfo</a>, <a href="#SetupTorsionRuleElementPatternMol">SetupTorsionRuleElementPatternMol</a>, <a href="#TrackHierarchyClassElementNode">TrackHierarchyClassElementNode</a>, <a href="#TrackHierarchySubClassElementNode">TrackHierarchySubClassElementNode</a>
+</p><h1 id="FUNCTIONS">FUNCTIONS</h2>
+<dl>
+<dt id="CalculateTorsionAngleDifference"><b>CalculateTorsionAngleDifference</b></dt>
+<dd>
+<div class="OptionsBox">    CalculateTorsionAngleDifference(TorsionAngle1, TorsionAngle2)</div>
+<p>Calculate torsion angle difference in the range from 0 to 180.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionAngle1 (float): First torsion angle.
+<br/>    TorsionAngle2 (float): Second torsion angle.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    float: Difference between first and second torsion angle.</div>
+</dd>
+<dt id="DoesSMARTSContainValidSubClassMappedAtoms"><b>DoesSMARTSContainValidSubClassMappedAtoms</b></dt>
+<dd>
+<div class="OptionsBox">    DoesSMARTSContainValidSubClassMappedAtoms(SMARTS)</div>
+<p>Check for the presence of two central mapped atoms in SMARTS pattern. A valid SMARTS pattern must contain only two mapped atoms corresponding to map atom numbers &#39;:2&#39; and &#39;:3&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    SMARTS (str): SMARTS pattern for sub class in torsion library XML tree.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    bool: True - A valid pattern; Otherwise, false.</div>
+</dd>
+<dt id="DoesSMARTSContainValidTorsionRuleMappedAtoms"><b>DoesSMARTSContainValidTorsionRuleMappedAtoms</b></dt>
+<dd>
+<div class="OptionsBox">    DoesSMARTSContainValidTorsionRuleMappedAtoms(SMARTS)</div>
+<p>Check for the presence of four mapped atoms in a SMARTS pattern. A valid SMARTS pattern must contain only four mapped atoms corresponding to map atom numbers &#39;:1&#39;, &#39;:2&#39;, &#39;:3&#39; and &#39;:4&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    SMARTS (str): SMARTS pattern for torsion rule in torsion library XML
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        tree.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    bool: True - A valid pattern; Otherwise, false.</div>
+</dd>
+<dt id="DoesSMARTSContainsMappedAtoms"><b>DoesSMARTSContainsMappedAtoms</b></dt>
+<dd>
+<div class="OptionsBox">    DoesSMARTSContainsMappedAtoms(SMARTS, MappedAtomNumsList)</div>
+<p>Check for the presence of specified mapped atoms in SMARTS pattern. The mapped atom numbers in the list are specified as &#39;:1&#39;, &#39;:2&#39;, &#39;:3&#39; etc.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    SMARTS (str): SMARTS pattern in torsion library XML tree.
+<br/>    MappedAtoms (list): Mapped atom numbers as &quot;:1&quot;, &quot;:2&quot; etc.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    bool: True - All mapped atoms present in pattern; Otherwise, false.</div>
+</dd>
+<dt id="GetGenericHierarchyClassElementNode"><b>GetGenericHierarchyClassElementNode</b></dt>
+<dd>
+<div class="OptionsBox">    GetGenericHierarchyClassElementNode(TorsionLibraryInfo)</div>
+<p>Get generic hierarchy class element node.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    object: Generic hierarchy class element node in torsion library XML
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        tree.</div>
+</dd>
+<dt id="IdentifyRotatableBondsForTorsionLibraryMatch"><b>IdentifyRotatableBondsForTorsionLibraryMatch</b></dt>
+<dd>
+<div class="OptionsBox">    IdentifyRotatableBondsForTorsionLibraryMatch(TorsionLibraryInfo, Mol, RotBondsPatternMol)</div>
+<p>Identify rotatable bonds in a molecule for torsion library match.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    Mol (object): RDKit molecule object.
+<br/>    RotBondsPatternMol (object): RDKit molecule object for SMARTS pattern
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        corresponding to rotatable bonds.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    bool: True - Rotatable bonds present in molecule; Otherwise, false.
+<br/>    None or dict: None - For no rotatable bonds in molecule; otherwise, a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        dictionary containing the following informations for rotatable bonds
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matched to RotBondsPatternMol:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            RotBondsInfo[&quot;IDs&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            RotBondsInfo[&quot;AtomIndices&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            RotBondsInfo[&quot;HierarchyClass&quot;] = {}</div>
+</dd>
+<dt id="IsSpecificHierarchyClass"><b>IsSpecificHierarchyClass</b></dt>
+<dd>
+<div class="OptionsBox">    IsSpecificHierarchyClass(TorsionLibraryInfo, HierarchyClass)</div>
+<p>Check whether it&#39;s a specific hierarchy class.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    HierarchyClass (str): Hierarchy class name.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    bool: True - A valid hierarchy class name; Otherwise, false.</div>
+</dd>
+<dt id="ListTorsionLibraryInfo"><b>ListTorsionLibraryInfo</b></dt>
+<dd>
+<div class="OptionsBox">    ListTorsionLibraryInfo(TorsionLibElementTree)</div>
+<p>List torsion library information using XML tree object. The following information is listed:</p>
+<p>Summary:</p>
+<div class="OptionsBox">    Total number of HierarchyClass nodes: &lt;Number&gt;
+<br/>    Total number of HierarchyClassSubClass nodes: &lt;Number
+<br/>    Total number of TorsionRule nodes: &lt;Number</div>
+<p>Details:</p>
+<div class="OptionsBox">    HierarchyClass: &lt;Name&gt;; HierarchySubClass nodes: &lt;Number&gt;;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionRule nodes: &lt;SMARTS&gt;
+     ... ... ...</div>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibElementTree (object): XML tree object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Nothing.</div>
+</dd>
+<dt id="RemoveLastHierarchyClassElementNodeFromTracking"><b>RemoveLastHierarchyClassElementNodeFromTracking</b></dt>
+<dd>
+<div class="OptionsBox">    RemoveLastHierarchyClassElementNodeFromTracking(TorsionLibraryInfo)</div>
+<p>Remove last hierarchy class element node from tracking by removing it from a stack.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Nothing. The torsion library info is updated.</div>
+</dd>
+<dt id="RemoveLastHierarchySubClassElementNodeFromTracking"><b>RemoveLastHierarchySubClassElementNodeFromTracking</b></dt>
+<dd>
+<div class="OptionsBox">    RemoveLastHierarchySubClassElementNodeFromTracking(TorsionLibraryInfo)</div>
+<p>Remove last hierarchy sub class element node from tracking by removing it from a stack.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Nothing. The torsion library info is updated.</div>
+</dd>
+<dt id="RetrieveTorsionLibraryInfo"><b>RetrieveTorsionLibraryInfo</b></dt>
+<dd>
+<div class="OptionsBox">    RetrieveTorsionLibraryInfo(TorsionLibraryFilePath, Quiet = True)</div>
+<p>Retrieve torsion library information.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryFilePath (str):  Torsion library XML file path.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    object: An object returned by xml.etree.ElementTree.parse function.</div>
+<p>The XML file is parsed using xml.etree.ElementTree.parse function and object created by the parse function is simply returned.</p>
+</dd>
+<dt id="SetupHierarchyClassAndSubClassNamesForRotatableBond"><b>SetupHierarchyClassAndSubClassNamesForRotatableBond</b></dt>
+<dd>
+<div class="OptionsBox">    SetupHierarchyClassAndSubClassNamesForRotatableBond(TorsionLibraryInfo)
+<br/>
+ Setup hierarchy class and subclass names for a rotatable bond matched to
+a torsion rule element node.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>
+<br/>    str: A back slash delimited string containing hierarchy class names at
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        the level of torsion rule element node.
+<br/>    str: A back slash delimited string containing hierarchy sub class names
+      at the level of torsion rule element node.</div>
+</dd>
+<dt id="SetupHierarchySubClassElementPatternMol"><b>SetupHierarchySubClassElementPatternMol</b></dt>
+<dd>
+<div class="OptionsBox">    SetupHierarchySubClassElementPatternMol(TorsionLibraryInfo, ElementNode)</div>
+<p>Setup pattern molecule for SMARTS pattern in hierarchy subclass element.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    ElementNode (object): A hierarchy sub class element node being matched
+       in torsion library XML tree.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    object: RDKit molecule object corresponding to SMARTS pattern for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        hierarchy sub class element node.</div>
+</dd>
+<dt id="SetupTorsionLibraryInfoForMatchingRotatableBonds"><b>SetupTorsionLibraryInfoForMatchingRotatableBonds</b></dt>
+<dd>
+<div class="OptionsBox">    SetupTorsionLibraryInfoForMatchingRotatableBonds(TorsionLibraryInfo)</div>
+<p>Setup torsion library information for matching rotatable bonds. The following information is initialized and updated in torsion library dictionary for matching rotatable bonds:</p>
+<div class="OptionsBox">    TorsionLibraryInfo[&quot;GenericClass&quot;] = None
+<br/>    TorsionLibraryInfo[&quot;GenericClassElementNode&quot;] = None
+<br/>    
+<br/>    TorsionLibraryInfo[&quot;SpecificClasses&quot;] = {}
+<br/>    TorsionLibraryInfo[&quot;SpecificClasses&quot;][&quot;Names&quot;] = []
+<br/>    TorsionLibraryInfo[&quot;SpecificClasses&quot;][&quot;ElementNode&quot;] = {}
+<br/>    
+<br/>    TorsionLibraryInfo[&quot;HierarchyClassNodes&quot;] = []
+<br/>    TorsionLibraryInfo[&quot;HierarchySubClassNodes&quot;] = []
+<br/>    
+<br/>    TorsionLibraryInfo[&quot;DataCache&quot;] = {}
+<br/>    TorsionLibraryInfo[&quot;DataCache&quot;][&quot;SubClassPatternMol&quot;] = {}
+<br/>    
+<br/>    TorsionLibraryInfo[&quot;DataCache&quot;][&quot;TorsionRulePatternMol&quot;] = {}
+<br/>    TorsionLibraryInfo[&quot;DataCache&quot;][&quot;TorsionRuleAnglesInfo&quot;] = {}</div>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing root node for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        torsion library element tree.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Nonthing. The torsion library information dictionary is updated.</div>
+</dd>
+<dt id="SetupTorsionRuleAnglesInfo"><b>SetupTorsionRuleAnglesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    SetupTorsionRuleAnglesInfo(TorsionLibraryInfo, TorsionRuleElementNode)</div>
+<p>Setup torsion angles and energy info for matching a torsion rule.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    TorsionRuleElementNode (object): A torsion rule element node being
+       matched in torsion library XML tree.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing the following information for torsion rule
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        being matched to a rotatable bond:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;IDs&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Value&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Score&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Tolerance1&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Tolerance2&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;ValuesList&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;ValuesIn360RangeList&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Tolerances1List&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Tolerances2List&quot;] = []
+         
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        # Strain energy calculations...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;EnergyMethod&quot;] = None
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;EnergyMethodExact&quot;] = None
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;EnergyMethodApproximate&quot;] = None
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        # For approximate strain energy calculation...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Beta1&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Beta2&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;Theta0&quot;] = {}
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        # For exact strain energy calculation...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;HistogramEnergy&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;HistogramEnergyLowerBound&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        RuleAnglesInfo[&quot;HistogramEnergyUpperBound&quot;] = []
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            </div>
+</dd>
+<dt id="SetupTorsionRuleElementPatternMol"><b>SetupTorsionRuleElementPatternMol</b></dt>
+<dd>
+<div class="OptionsBox">    SetupTorsionRuleElementPatternMol(TorsionLibraryInfo, ElementNode, TorsionRuleNodeID, TorsionSMARTSPattern)</div>
+<p>Setup pattern molecule for SMARTS pattern in torsion rule element.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    ElementNode (object): A torsion rule element node being matched in
+       torsion library XML tree.
+<br/>    TorsionRuleNodeID (int): Torsion rule element node ID.
+<br/>    TorsionSMARTSPattern (str): SMARTS pattern for torsion rule element node.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    object: RDKit molecule object corresponding to SMARTS pattern for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        torsion rule element node.</div>
+</dd>
+<dt id="TrackHierarchyClassElementNode"><b>TrackHierarchyClassElementNode</b></dt>
+<dd>
+<div class="OptionsBox">    TrackHierarchyClassElementNode(TorsionLibraryInfo, ElementNode)</div>
+<p>Track hierarchy class element node using a stack.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    ElementNode (object): Hierarchy class element node in torsion library
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        XML tree. </div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Nothing. The torsion library info is updated.</div>
+</dd>
+<dt id="TrackHierarchySubClassElementNode"><b>TrackHierarchySubClassElementNode</b></dt>
+<dd>
+<div class="OptionsBox">    TrackHierarchySubClassElementNode(TorsionLibraryInfo, ElementNode)</div>
+<p>Track hierarchy sub class element node using a stack.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    TorsionLibraryInfo (dict): A dictionary containing information for
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        matching rotatable bonds.
+<br/>    ElementNode (object): Hierarchy sub class element node in torsion
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        library XML tree. </div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    Nothing. The torsion library info is updated.</div>
+</dd>
+</dl>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitUtil.py.html" title="RDKitUtil.py.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./SDFileUtil.html" title="SDFileUtil.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>Python/TorsionLibraryUtil.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

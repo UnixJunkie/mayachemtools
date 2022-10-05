@@ -1,0 +1,1506 @@
+<html>
+<head>
+<title>MayaChemTools:Code:Python/RDKitUtil.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+    1 <span class="ch">#!/bin/env python</span>
+    2 <span class="c1"># File: RDKitUtil.py</span>
+    3 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+    4 <span class="c1">#</span>
+    5 <span class="c1"># Copyright (C) 2022 Manish Sud. All rights reserved.</span>
+    6 <span class="c1">#</span>
+    7 <span class="c1"># The functionality available in this file is implemented using RDKit, an</span>
+    8 <span class="c1"># open source toolkit for cheminformatics developed by Greg Landrum.</span>
+    9 <span class="c1">#</span>
+   10 <span class="c1"># This file is part of MayaChemTools.</span>
+   11 <span class="c1">#</span>
+   12 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+   13 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+   14 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+   15 <span class="c1"># later version.</span>
+   16 <span class="c1">#</span>
+   17 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+   18 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+   19 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+   20 <span class="c1"># details.</span>
+   21 <span class="c1">#</span>
+   22 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+   23 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+   24 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+   25 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+   26 <span class="c1">#</span>
+   27 
+   28 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+   29 
+   30 <span class="kn">import</span> <span class="nn">os</span>
+   31 <span class="kn">import</span> <span class="nn">sys</span>
+   32 <span class="kn">import</span> <span class="nn">re</span>
+   33 <span class="kn">import</span> <span class="nn">base64</span>
+   34 <span class="kn">import</span> <span class="nn">pickle</span>
+   35 
+   36 <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+   37 <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+   38 <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">Draw</span>
+   39 
+   40 <span class="kn">import</span> <span class="nn">MiscUtil</span>
+   41 
+   42 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AreAtomIndicesSequentiallyConnected&quot;</span><span class="p">,</span> <span class="s2">&quot;AreAtomMapNumbersPresentInMol&quot;</span><span class="p">,</span> <span class="s2">&quot;AreHydrogensMissingInMolecule&quot;</span><span class="p">,</span> <span class="s2">&quot;ClearAtomMapNumbers&quot;</span><span class="p">,</span> <span class="s2">&quot;ConstrainAndEmbed&quot;</span><span class="p">,</span> <span class="s2">&quot;FilterSubstructureMatchByAtomMapNumbers&quot;</span><span class="p">,</span> <span class="s2">&quot;FilterSubstructureMatchesByAtomMapNumbers&quot;</span><span class="p">,</span> <span class="s2">&quot;GetAtomIndices&quot;</span><span class="p">,</span> <span class="s2">&quot;GetAtomMapIndices&quot;</span><span class="p">,</span> <span class="s2">&quot;GetAtomMapIndicesAndMapNumbers&quot;</span><span class="p">,</span> <span class="s2">&quot;GetAtomSymbols&quot;</span><span class="p">,</span> <span class="s2">&quot;GetAtomPositions&quot;</span><span class="p">,</span> <span class="s2">&quot;GetFormalCharge&quot;</span><span class="p">,</span> <span class="s2">&quot;GetHeavyAtomNeighbors&quot;</span><span class="p">,</span> <span class="s2">&quot;GetInlineSVGForMolecule&quot;</span><span class="p">,</span> <span class="s2">&quot;GetInlineSVGForMolecules&quot;</span><span class="p">,</span> <span class="s2">&quot;GetMolName&quot;</span><span class="p">,</span> <span class="s2">&quot;GetNumFragments&quot;</span><span class="p">,</span> <span class="s2">&quot;GetNumHeavyAtomNeighbors&quot;</span><span class="p">,</span> <span class="s2">&quot;GetSpinMultiplicity&quot;</span><span class="p">,</span> <span class="s2">&quot;GetSVGForMolecule&quot;</span><span class="p">,</span> <span class="s2">&quot;GetSVGForMolecules&quot;</span><span class="p">,</span> <span class="s2">&quot;GetPsi4XYZFormatString&quot;</span><span class="p">,</span> <span class="s2">&quot;GenerateBase64EncodedMolStrings&quot;</span><span class="p">,</span> <span class="s2">&quot;GenerateBase64EncodedMolStringWithConfIDs&quot;</span><span class="p">,</span> <span class="s2">&quot;IsAtomSymbolPresentInMol&quot;</span><span class="p">,</span> <span class="s2">&quot;IsMolEmpty&quot;</span><span class="p">,</span> <span class="s2">&quot;IsValidElementSymbol&quot;</span><span class="p">,</span> <span class="s2">&quot;IsValidAtomIndex&quot;</span><span class="p">,</span> <span class="s2">&quot;MolFromBase64EncodedMolString&quot;</span><span class="p">,</span> <span class="s2">&quot;GenerateBase64EncodedMolStringsWithIDs&quot;</span><span class="p">,</span> <span class="s2">&quot;MolToBase64EncodedMolString&quot;</span><span class="p">,</span> <span class="s2">&quot;MolFromSubstructureMatch&quot;</span><span class="p">,</span> <span class="s2">&quot;MolsFromSubstructureMatches&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadMolecules&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadAndValidateMolecules&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadMoleculesFromSDFile&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadMoleculesFromMolFile&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadMoleculesFromMol2File&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadMoleculesFromPDBFile&quot;</span><span class="p">,</span> <span class="s2">&quot;ReadMoleculesFromSMILESFile&quot;</span><span class="p">,</span> <span class="s2">&quot;ReorderAtomIndicesInSequentiallyConnectedManner&quot;</span><span class="p">,</span> <span class="s2">&quot;SetAtomPositions&quot;</span><span class="p">,</span> <span class="s2">&quot;SetWriterMolProps&quot;</span><span class="p">,</span> <span class="s2">&quot;ValidateElementSymbols&quot;</span><span class="p">,</span> <span class="s2">&quot;WriteMolecules&quot;</span><span class="p">]</span>
+   43 
+   44 <span class="k">def</span> <span class="nf">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+   45     <span class="sd">&quot;&quot;&quot;Get molecule name.</span>
+   46 <span class="sd">    </span>
+   47 <span class="sd">    Arguments:</span>
+   48 <span class="sd">        Mol (object): RDKit molecule object.</span>
+   49 <span class="sd">        MolNum (int or None): Molecule number in input file.</span>
+   50 
+   51 <span class="sd">    Returns:</span>
+   52 <span class="sd">        str : Molname corresponding to _Name property of a molecule, generated</span>
+   53 <span class="sd">            from specieid MolNum using the format &quot;Mol%d&quot; % MolNum, or an</span>
+   54 <span class="sd">            empty string.</span>
+   55 
+   56 <span class="sd">    &quot;&quot;&quot;</span>
+   57     
+   58     <span class="n">MolName</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+   59     <span class="k">if</span> <span class="n">Mol</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">&quot;_Name&quot;</span><span class="p">):</span>
+   60         <span class="n">MolName</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">&quot;_Name&quot;</span><span class="p">)</span>
+   61 
+   62     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">MolName</span><span class="p">):</span>
+   63         <span class="k">if</span> <span class="n">MolNum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+   64             <span class="n">MolName</span> <span class="o">=</span> <span class="s2">&quot;Mol</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolNum</span>
+   65     
+   66     <span class="k">return</span> <span class="n">MolName</span>
+   67 
+   68 <span class="k">def</span> <span class="nf">GetInlineSVGForMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">Width</span><span class="p">,</span> <span class="n">Height</span><span class="p">,</span> <span class="n">Legend</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">AtomListToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BondListToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BoldText</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">Base64Encoded</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+   69     <span class="sd">&quot;&quot;&quot;Get SVG image text for a molecule suitable for inline embedding into a HTML page.</span>
+   70 <span class="sd">    </span>
+   71 <span class="sd">    Arguments:</span>
+   72 <span class="sd">        Mol (object): RDKit molecule object.</span>
+   73 <span class="sd">        Width (int): Width of a molecule image in pixels.</span>
+   74 <span class="sd">        Height (int): Height of a molecule image in pixels.</span>
+   75 <span class="sd">        Legend (str): Text to display under the image.</span>
+   76 <span class="sd">        AtomListToHighlight (list): List of atoms to highlight.</span>
+   77 <span class="sd">        BondListToHighlight (list): List of bonds to highlight.</span>
+   78 <span class="sd">        BoldText (bool): Flag to make text bold in the image of molecule. </span>
+   79 <span class="sd">        Base64Encoded (bool): Flag to return base64 encoded string. </span>
+   80 
+   81 <span class="sd">    Returns:</span>
+   82 <span class="sd">        str : SVG image text for inline embedding into a HTML page using &quot;img&quot;</span>
+   83 <span class="sd">            tag: &lt;img src=&quot;data:image/svg+xml;charset=UTF-8,SVGImageText&gt; or</span>
+   84 <span class="sd">            tag: &lt;img src=&quot;data:image/svg+xml;base64,SVGImageText&gt;</span>
+   85 
+   86 <span class="sd">    &quot;&quot;&quot;</span>
+   87 
+   88     <span class="n">SVGText</span> <span class="o">=</span> <span class="n">GetSVGForMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">Width</span><span class="p">,</span> <span class="n">Height</span><span class="p">,</span> <span class="n">Legend</span><span class="p">,</span> <span class="n">AtomListToHighlight</span><span class="p">,</span> <span class="n">BondListToHighlight</span><span class="p">,</span> <span class="n">BoldText</span><span class="p">)</span>
+   89     <span class="k">return</span> <span class="n">_ModifySVGForInlineEmbedding</span><span class="p">(</span><span class="n">SVGText</span><span class="p">,</span> <span class="n">Base64Encoded</span><span class="p">)</span>
+   90     
+   91 <span class="k">def</span> <span class="nf">GetInlineSVGForMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">MolsPerRow</span><span class="p">,</span> <span class="n">MolWidth</span><span class="p">,</span> <span class="n">MolHeight</span><span class="p">,</span> <span class="n">Legends</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">AtomListsToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BondListsToHighLight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BoldText</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">Base64Encoded</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+   92     <span class="sd">&quot;&quot;&quot;Get SVG image text for  molecules suitable for inline embedding into a HTML page.</span>
+   93 <span class="sd">    </span>
+   94 <span class="sd">    Arguments:</span>
+   95 <span class="sd">        Mols (list): List of RDKit molecule objects.</span>
+   96 <span class="sd">        MolsPerRow (int): Number of molecules per row.</span>
+   97 <span class="sd">        Width (int): Width of a molecule image in pixels.</span>
+   98 <span class="sd">        Height (int): Height of a molecule image in pixels.</span>
+   99 <span class="sd">        Legends (list): List containing strings to display under images.</span>
+  100 <span class="sd">        AtomListsToHighlight (list): List of lists containing atoms to highlight</span>
+  101 <span class="sd">            for molecules.</span>
+  102 <span class="sd">        BondListsToHighlight (list): List of lists containing bonds to highlight</span>
+  103 <span class="sd">            for molecules</span>
+  104 <span class="sd">        BoldText (bool): Flag to make text bold in the image of molecules. </span>
+  105 <span class="sd">        Base64Encoded (bool): Flag to return base64 encoded string. </span>
+  106 
+  107 <span class="sd">    Returns:</span>
+  108 <span class="sd">        str : SVG image text for inline embedding into a HTML page using &quot;img&quot;</span>
+  109 <span class="sd">            tag: &lt;img src=&quot;data:image/svg+xml;charset=UTF-8,SVGImageText&gt; or</span>
+  110 <span class="sd">            tag: &lt;img src=&quot;data:image/svg+xml;base64,SVGImageText&gt;</span>
+  111 
+  112 <span class="sd">    &quot;&quot;&quot;</span>
+  113     
+  114     <span class="n">SVGText</span> <span class="o">=</span> <span class="n">GetSVGForMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">MolsPerRow</span><span class="p">,</span> <span class="n">MolWidth</span><span class="p">,</span> <span class="n">MolHeight</span><span class="p">,</span> <span class="n">Legends</span><span class="p">,</span> <span class="n">AtomListsToHighlight</span><span class="p">,</span> <span class="n">BondListsToHighLight</span><span class="p">,</span> <span class="n">BoldText</span><span class="p">)</span>
+  115     <span class="k">return</span> <span class="n">_ModifySVGForInlineEmbedding</span><span class="p">(</span><span class="n">SVGText</span><span class="p">,</span> <span class="n">Base64Encoded</span><span class="p">)</span>
+  116 
+  117 <span class="k">def</span> <span class="nf">_ModifySVGForInlineEmbedding</span><span class="p">(</span><span class="n">SVGText</span><span class="p">,</span> <span class="n">Base64Encoded</span><span class="p">):</span>
+  118     <span class="sd">&quot;&quot;&quot;Modify SVG for inline embedding into a HTML page using &quot;img&quot; tag</span>
+  119 <span class="sd">    along with performing base64 encoding.</span>
+  120 <span class="sd">    &quot;&quot;&quot;</span>
+  121     
+  122     <span class="c1"># Take out all tags till the start of &#39;&lt;svg&#39; tag...</span>
+  123     <span class="n">Pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;^.*&lt;svg&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">S</span><span class="p">)</span>
+  124     <span class="n">SVGText</span> <span class="o">=</span> <span class="n">Pattern</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&lt;svg&quot;</span><span class="p">,</span> <span class="n">SVGText</span><span class="p">)</span>
+  125     
+  126     <span class="c1"># Add an extra space before the &quot;width=...&quot; tag. Otherwise, inline embedding may</span>
+  127     <span class="c1"># cause the following XML error on some browsers due to start of the &quot;width=...&quot;</span>
+  128     <span class="c1"># at the begining of the line in &lt;svg ...&gt; tag:</span>
+  129     <span class="c1">#</span>
+  130     <span class="c1">#  XML5607: Whitespace expected.</span>
+  131     <span class="c1">#</span>
+  132     <span class="n">SVGText</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;width=&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot; width=&#39;&quot;</span><span class="p">,</span> <span class="n">SVGText</span><span class="p">,</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+  133     
+  134     <span class="c1"># Take out trailing new line...</span>
+  135     <span class="n">SVGText</span> <span class="o">=</span> <span class="n">SVGText</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+  136 
+  137     <span class="c1"># Perform base64 encoding by turning text into byte stream using string</span>
+  138     <span class="c1"># encode and transform byte stream returned by b64encode into a string</span>
+  139     <span class="c1"># by string decode...</span>
+  140     <span class="c1">#</span>
+  141     <span class="k">if</span> <span class="n">Base64Encoded</span><span class="p">:</span>
+  142         <span class="n">SVGText</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">SVGText</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+  143 
+  144     <span class="k">return</span> <span class="n">SVGText</span>
+  145 
+  146 <span class="k">def</span> <span class="nf">GetSVGForMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">Width</span><span class="p">,</span> <span class="n">Height</span><span class="p">,</span> <span class="n">Legend</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">AtomListToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BondListToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BoldText</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  147     <span class="sd">&quot;&quot;&quot;Get SVG image text for a molecule suitable for viewing in a browser.</span>
+  148 <span class="sd">    </span>
+  149 <span class="sd">    Arguments:</span>
+  150 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  151 <span class="sd">        Width (int): Width of a molecule image in pixels.</span>
+  152 <span class="sd">        Height (int): Height of a molecule image in pixels.</span>
+  153 <span class="sd">        Legend (str): Text to display under the image.</span>
+  154 <span class="sd">        AtomListToHighlight (list): List of atoms to highlight.</span>
+  155 <span class="sd">        BondListToHighlight (list): List of bonds to highlight.</span>
+  156 <span class="sd">        BoldText (bool): Flag to make text bold in the image of molecule. </span>
+  157 
+  158 <span class="sd">    Returns:</span>
+  159 <span class="sd">        str : SVG image text for writing to a SVG file for viewing in a browser.</span>
+  160 
+  161 <span class="sd">    &quot;&quot;&quot;</span>
+  162     
+  163     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mol</span><span class="p">]</span>
+  164     
+  165     <span class="n">MolsPerRow</span> <span class="o">=</span> <span class="mi">1</span>
+  166     <span class="n">MolWidth</span> <span class="o">=</span> <span class="n">Width</span>
+  167     <span class="n">MolHeight</span> <span class="o">=</span> <span class="n">Height</span>
+  168     
+  169     <span class="n">Legends</span> <span class="o">=</span> <span class="p">[</span><span class="n">Legend</span><span class="p">]</span> <span class="k">if</span> <span class="n">Legend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+  170     <span class="n">AtomListsToHighlight</span> <span class="o">=</span> <span class="p">[</span><span class="n">AtomListToHighlight</span><span class="p">]</span> <span class="k">if</span> <span class="n">AtomListToHighlight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+  171     <span class="n">BondListsToHighLight</span> <span class="o">=</span> <span class="p">[</span><span class="n">BondListsToHighLight</span><span class="p">]</span> <span class="k">if</span> <span class="n">BondListToHighlight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+  172     
+  173     <span class="k">return</span> <span class="n">GetSVGForMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">MolsPerRow</span><span class="p">,</span> <span class="n">MolWidth</span><span class="p">,</span> <span class="n">MolHeight</span><span class="p">,</span> <span class="n">Legends</span><span class="p">,</span> <span class="n">AtomListsToHighlight</span><span class="p">,</span> <span class="n">BondListsToHighLight</span><span class="p">,</span> <span class="n">BoldText</span><span class="p">)</span>
+  174 
+  175 <span class="k">def</span> <span class="nf">GetSVGForMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">MolsPerRow</span><span class="p">,</span> <span class="n">MolWidth</span><span class="p">,</span> <span class="n">MolHeight</span><span class="p">,</span> <span class="n">Legends</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">AtomListsToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BondListsToHighlight</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">BoldText</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  176     <span class="sd">&quot;&quot;&quot;Get SVG image text for molecules suitable for viewing in a browser.</span>
+  177 <span class="sd">    </span>
+  178 <span class="sd">    Arguments:</span>
+  179 <span class="sd">        Mols (list): List of RDKit molecule objects.</span>
+  180 <span class="sd">        MolsPerRow (int): Number of molecules per row.</span>
+  181 <span class="sd">        Width (int): Width of a molecule image in pixels.</span>
+  182 <span class="sd">        Height (int): Height of a molecule image in pixels.</span>
+  183 <span class="sd">        Legends (list): List containing strings to display under images.</span>
+  184 <span class="sd">        AtomListsToHighlight (list): List of lists containing atoms to highlight</span>
+  185 <span class="sd">            for molecules.</span>
+  186 <span class="sd">        BondListsToHighlight (list): List of lists containing bonds to highlight</span>
+  187 <span class="sd">            for molecules</span>
+  188 <span class="sd">        BoldText (bool): Flag to make text bold in the image of molecules. </span>
+  189 
+  190 <span class="sd">    Returns:</span>
+  191 <span class="sd">        str : SVG image text for writing to a SVG file for viewing in a browser.</span>
+  192 
+  193 <span class="sd">    &quot;&quot;&quot;</span>
+  194     
+  195     <span class="n">SVGText</span> <span class="o">=</span> <span class="n">Draw</span><span class="o">.</span><span class="n">MolsToGridImage</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">molsPerRow</span> <span class="o">=</span> <span class="n">MolsPerRow</span><span class="p">,</span> <span class="n">subImgSize</span> <span class="o">=</span> <span class="p">(</span><span class="n">MolWidth</span><span class="p">,</span><span class="n">MolHeight</span><span class="p">),</span> <span class="n">legends</span> <span class="o">=</span> <span class="n">Legends</span><span class="p">,</span> <span class="n">highlightAtomLists</span> <span class="o">=</span> <span class="n">AtomListsToHighlight</span><span class="p">,</span> <span class="n">highlightBondLists</span> <span class="o">=</span> <span class="n">BondListsToHighlight</span><span class="p">,</span> <span class="n">useSVG</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+  196     
+  197     <span class="k">return</span> <span class="n">_ModifySVGForBrowserViewing</span><span class="p">(</span><span class="n">SVGText</span><span class="p">,</span> <span class="n">BoldText</span><span class="p">)</span>
+  198 
+  199 <span class="k">def</span> <span class="nf">_ModifySVGForBrowserViewing</span><span class="p">(</span><span class="n">SVGText</span><span class="p">,</span> <span class="n">BoldText</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  200     <span class="sd">&quot;&quot;&quot;Modify SVG for loading into a browser.&quot;&quot;&quot;</span>
+  201     
+  202     <span class="c1"># It appears that the string &#39;xmlns:svg&#39; needs to be replaced with &#39;xmlns&#39; in the</span>
+  203     <span class="c1"># SVG image string generated by older versions of RDKit. Otherwise, the image</span>
+  204     <span class="c1"># doesn&#39;t load in web browsers.</span>
+  205     <span class="c1">#</span>
+  206     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;xmlns:svg&quot;</span><span class="p">,</span> <span class="n">SVGText</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  207         <span class="n">SVGText</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;xmlns:svg&quot;</span><span class="p">,</span> <span class="s2">&quot;xmlns&quot;</span><span class="p">,</span> <span class="n">SVGText</span><span class="p">,</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+  208     
+  209     <span class="c1"># Make text bold...</span>
+  210     <span class="k">if</span> <span class="n">BoldText</span><span class="p">:</span>
+  211         <span class="n">SVGText</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;font-weight:normal;&quot;</span><span class="p">,</span> <span class="s2">&quot;font-weight:bold;&quot;</span><span class="p">,</span> <span class="n">SVGText</span><span class="p">,</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+  212     
+  213     <span class="k">return</span> <span class="n">SVGText</span>
+  214 
+  215 <span class="k">def</span> <span class="nf">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  216     <span class="sd">&quot;&quot;&quot;Check for the presence of atoms in a molecule.</span>
+  217 <span class="sd">    </span>
+  218 <span class="sd">    Arguments:</span>
+  219 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  220 
+  221 <span class="sd">    Returns:</span>
+  222 <span class="sd">        bool : True - No atoms in molecule; Otherwise, false. </span>
+  223 
+  224 <span class="sd">    &quot;&quot;&quot;</span>
+  225 
+  226     <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span> <span class="k">if</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span> <span class="k">else</span> <span class="bp">True</span>
+  227     
+  228     <span class="k">return</span> <span class="n">Status</span>
+  229 
+  230 <span class="k">def</span> <span class="nf">IsAtomSymbolPresentInMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomSymbol</span><span class="p">,</span> <span class="n">IgnoreCase</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  231     <span class="sd">&quot;&quot;&quot; Check for the presence of an atom symbol in a molecule.</span>
+  232 <span class="sd">    </span>
+  233 <span class="sd">    Arguments:</span>
+  234 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  235 <span class="sd">        AtomSymbol (str): Atom symbol.</span>
+  236 
+  237 <span class="sd">    Returns:</span>
+  238 <span class="sd">        bool : True - Atom symbol in molecule; Otherwise, false. </span>
+  239 
+  240 <span class="sd">    &quot;&quot;&quot;</span>
+  241     
+  242     <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+  243         <span class="n">Symbol</span> <span class="o">=</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span>
+  244         <span class="k">if</span> <span class="n">IgnoreCase</span><span class="p">:</span>
+  245             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^</span><span class="si">%s</span><span class="s2">$&quot;</span> <span class="o">%</span> <span class="n">AtomSymbol</span><span class="p">,</span> <span class="n">Symbol</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  246                 <span class="k">return</span> <span class="bp">True</span>
+  247         <span class="k">else</span><span class="p">:</span>
+  248             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^</span><span class="si">%s</span><span class="s2">$&quot;</span> <span class="o">%</span> <span class="n">AtomSymbol</span><span class="p">,</span> <span class="n">Symbol</span><span class="p">):</span>
+  249                 <span class="k">return</span> <span class="bp">True</span>
+  250     
+  251     <span class="k">return</span> <span class="bp">False</span>
+  252 
+  253 <span class="k">def</span> <span class="nf">ValidateElementSymbols</span><span class="p">(</span><span class="n">ElementSymbols</span><span class="p">):</span>
+  254     <span class="sd">&quot;&quot;&quot;Validate element symbols.</span>
+  255 <span class="sd">    </span>
+  256 <span class="sd">    Arguments:</span>
+  257 <span class="sd">        ElementSymbols (list): List of element symbols to validate.</span>
+  258 
+  259 <span class="sd">    Returns:</span>
+  260 <span class="sd">        bool : True - All element symbols are valid; Otherwise, false. </span>
+  261 
+  262 <span class="sd">    &quot;&quot;&quot;</span>
+  263     <span class="k">for</span> <span class="n">ElementSymbol</span> <span class="ow">in</span> <span class="n">ElementSymbols</span><span class="p">:</span>
+  264         <span class="k">if</span> <span class="ow">not</span> <span class="n">IsValidElementSymbol</span><span class="p">(</span><span class="n">ElementSymbol</span><span class="p">):</span>
+  265             <span class="k">return</span> <span class="bp">False</span>
+  266     
+  267     <span class="k">return</span> <span class="bp">True</span>
+  268 
+  269 <span class="k">def</span> <span class="nf">GetAtomPositions</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">ConfID</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+  270     <span class="sd">&quot;&quot;&quot;Retrieve a list of lists containing coordinates of all atoms in a</span>
+  271 <span class="sd">    molecule.</span>
+  272 <span class="sd">    </span>
+  273 <span class="sd">    Arguments:</span>
+  274 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  275 <span class="sd">        ConfID (int): Conformer number.</span>
+  276 
+  277 <span class="sd">    Returns:</span>
+  278 <span class="sd">        list : List of lists containing atom positions.</span>
+  279 
+  280 <span class="sd">    Examples:</span>
+  281 
+  282 <span class="sd">        for AtomPosition in RDKitUtil.GetAtomPositions(Mol):</span>
+  283 <span class="sd">            print(&quot;X: %s; Y: %s; Z: %s&quot; % (AtomPosition[0], AtomPosition[1], AtomPosition[2]))</span>
+  284 
+  285 <span class="sd">    &quot;&quot;&quot;</span>
+  286 
+  287     <span class="k">return</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">(</span><span class="nb">id</span> <span class="o">=</span> <span class="n">ConfID</span><span class="p">)</span><span class="o">.</span><span class="n">GetPositions</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+  288 
+  289 <span class="k">def</span> <span class="nf">SetAtomPositions</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomPositions</span><span class="p">,</span> <span class="n">ConfID</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+  290     <span class="sd">&quot;&quot;&quot;Set atom positions of all atoms in a molecule.</span>
+  291 <span class="sd">    </span>
+  292 <span class="sd">    Arguments:</span>
+  293 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  294 <span class="sd">        AtomPositions (object): List of lists containing atom positions.</span>
+  295 <span class="sd">        ConfID (int): Conformer number.</span>
+  296 
+  297 <span class="sd">    Returns:</span>
+  298 <span class="sd">        object : RDKit molecule object.</span>
+  299 
+  300 <span class="sd">    &quot;&quot;&quot;</span>
+  301     
+  302     <span class="n">MolConf</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">(</span><span class="n">ConfID</span><span class="p">)</span>
+  303 
+  304     <span class="k">for</span> <span class="n">Index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">AtomPositions</span><span class="p">)):</span>
+  305             <span class="n">MolConf</span><span class="o">.</span><span class="n">SetAtomPosition</span><span class="p">(</span><span class="n">Index</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">AtomPositions</span><span class="p">[</span><span class="n">Index</span><span class="p">]))</span>
+  306     
+  307     <span class="k">return</span> <span class="n">Mol</span>
+  308 
+  309 <span class="k">def</span> <span class="nf">GetAtomSymbols</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  310     <span class="sd">&quot;&quot;&quot;Retrieve a list containing atom symbols of all atoms a molecule.</span>
+  311 <span class="sd">    </span>
+  312 <span class="sd">    Arguments:</span>
+  313 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  314 
+  315 <span class="sd">    Returns:</span>
+  316 <span class="sd">        list : List of atom symbols.</span>
+  317 
+  318 <span class="sd">    &quot;&quot;&quot;</span>
+  319 
+  320     <span class="k">return</span> <span class="p">[</span><span class="n">Atom</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span> <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+  321 
+  322 <span class="k">def</span> <span class="nf">GetAtomIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  323     <span class="sd">&quot;&quot;&quot;Retrieve a list containing atom indices of all atoms a molecule.</span>
+  324 <span class="sd">    </span>
+  325 <span class="sd">    Arguments:</span>
+  326 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  327 
+  328 <span class="sd">    Returns:</span>
+  329 <span class="sd">        list : List of atom indices.</span>
+  330 
+  331 <span class="sd">    &quot;&quot;&quot;</span>
+  332 
+  333     <span class="k">return</span> <span class="p">[</span><span class="n">Atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+  334 
+  335 <span class="k">def</span> <span class="nf">GetFormalCharge</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">CheckMolProp</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  336     <span class="sd">&quot;&quot;&quot;Get formal charge of a molecule. The formal charge is either retrieved</span>
+  337 <span class="sd">    from &#39;FormalCharge&#39; molecule property or calculated using RDKit function</span>
+  338 <span class="sd">    Chem.GetFormalCharge(Mol).</span>
+  339 
+  340 <span class="sd">    Arguments:</span>
+  341 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  342 <span class="sd">        CheckMolProp (bool): Check &#39;FormalCharge&#39; molecule property to</span>
+  343 <span class="sd">            retrieve formal charge.</span>
+  344 
+  345 <span class="sd">    Returns:</span>
+  346 <span class="sd">        int : Formal charge.</span>
+  347 
+  348 <span class="sd">    &quot;&quot;&quot;</span>
+  349     
+  350     <span class="n">Name</span> <span class="o">=</span> <span class="s1">&#39;FormalCharge&#39;</span>
+  351     <span class="k">if</span> <span class="p">(</span><span class="n">CheckMolProp</span> <span class="ow">and</span> <span class="n">Mol</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="n">Name</span><span class="p">)):</span>
+  352         <span class="n">FormalCharge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Mol</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="n">Name</span><span class="p">)))</span>
+  353     <span class="k">else</span><span class="p">:</span>
+  354         <span class="n">FormalCharge</span> <span class="o">=</span>  <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  355     
+  356     <span class="k">return</span> <span class="n">FormalCharge</span><span class="p">;</span>
+  357 
+  358 <span class="k">def</span> <span class="nf">GetSpinMultiplicity</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">CheckMolProp</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  359     <span class="sd">&quot;&quot;&quot;Get spin multiplicity of a molecule. The spin multiplicity is either</span>
+  360 <span class="sd">    retrieved from &#39;SpinMultiplicity&#39; molecule property or calculated from</span>
+  361 <span class="sd">    from the number of free radical electrons using Hund&#39;s rule of maximum</span>
+  362 <span class="sd">    multiplicity defined as 2S + 1 where S is the total electron spin. The</span>
+  363 <span class="sd">    total spin is 1/2 the number of free radical electrons in a molecule.</span>
+  364 
+  365 <span class="sd">    Arguments:</span>
+  366 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  367 <span class="sd">        CheckMolProp (bool): Check &#39;SpinMultiplicity&#39; molecule property to</span>
+  368 <span class="sd">            retrieve spin multiplicity.</span>
+  369 
+  370 <span class="sd">    Returns:</span>
+  371 <span class="sd">        int : Spin multiplicity.</span>
+  372 
+  373 <span class="sd">    &quot;&quot;&quot;</span>
+  374     
+  375     <span class="n">Name</span> <span class="o">=</span> <span class="s1">&#39;SpinMultiplicity&#39;</span>
+  376     <span class="k">if</span> <span class="p">(</span><span class="n">CheckMolProp</span> <span class="ow">and</span> <span class="n">Mol</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="n">Name</span><span class="p">)):</span>
+  377         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Mol</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="n">Name</span><span class="p">)))</span>
+  378 
+  379     <span class="c1"># Calculate spin multiplicity using Hund&#39;s rule of maximum multiplicity...</span>
+  380     <span class="n">NumRadicalElectrons</span> <span class="o">=</span> <span class="mi">0</span>
+  381     <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+  382         <span class="n">NumRadicalElectrons</span> <span class="o">+=</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNumRadicalElectrons</span><span class="p">()</span>
+  383 
+  384     <span class="n">TotalElectronicSpin</span> <span class="o">=</span> <span class="n">NumRadicalElectrons</span><span class="o">/</span><span class="mi">2</span>
+  385     <span class="n">SpinMultiplicity</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">TotalElectronicSpin</span> <span class="o">+</span> <span class="mi">1</span>
+  386     
+  387     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">SpinMultiplicity</span><span class="p">)</span>
+  388 
+  389 <span class="k">def</span> <span class="nf">GetPsi4XYZFormatString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">ConfID</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">FormalCharge</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">SpinMultiplicity</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">Symmetry</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">NoCom</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">NoReorient</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CheckFragments</span> <span class="o">=</span> <span class="bp">False</span><span class="p">):</span>
+  390     <span class="sd">&quot;&quot;&quot;Retrieve geometry string of a molecule in Psi4ish XYZ format to perform</span>
+  391 <span class="sd">    Psi4 quantum chemistry calculations.</span>
+  392 
+  393 <span class="sd">    Arguments:</span>
+  394 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  395 <span class="sd">        ConfID (int): Conformer number.</span>
+  396 <span class="sd">        FormalCharge (str): Specified formal charge or &#39;auto&#39; to calculate</span>
+  397 <span class="sd">           its value</span>
+  398 <span class="sd">        SpinMultiplicity (str): Specified spin multiplicity or &#39;auto&#39; to calculate</span>
+  399 <span class="sd">           its value.</span>
+  400 <span class="sd">        Symmetry (str): Specified symmetry or &#39;auto&#39; to calculate its value.</span>
+  401 <span class="sd">        NoCom (bool): Flag to disable recentering of a molecule by Psi4.</span>
+  402 <span class="sd">        NoReorient (bool): Flag to disable reorientation of a molecule by Psi4.</span>
+  403 <span class="sd">        CheckFragments (bool): Check for fragments and setup geometry string</span>
+  404 <span class="sd">           using  -- separator between fragments.</span>
+  405 
+  406 <span class="sd">    Returns:</span>
+  407 <span class="sd">        str : Geometry string of a molecule in Psi4ish XYZ format.</span>
+  408 
+  409 <span class="sd">    &quot;&quot;&quot;</span>
+  410 
+  411     <span class="c1"># Setup formal charge for molecule...</span>
+  412     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">FormalCharge</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  413         <span class="n">MolFormalCharge</span> <span class="o">=</span> <span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  414     <span class="k">else</span><span class="p">:</span>
+  415         <span class="n">MolFormalCharge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">FormalCharge</span><span class="p">)</span>
+  416         
+  417     <span class="c1"># Setup spin multiplicity for molecule...</span>
+  418     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">SpinMultiplicity</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  419         <span class="n">MolSpinMultiplicity</span> <span class="o">=</span> <span class="n">GetSpinMultiplicity</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  420     <span class="k">else</span><span class="p">:</span>
+  421         <span class="n">MolSpinMultiplicity</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">SpinMultiplicity</span><span class="p">)</span>
+  422     
+  423     <span class="c1"># Check for fragments...</span>
+  424     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mol</span><span class="p">]</span>
+  425     <span class="k">if</span> <span class="n">CheckFragments</span><span class="p">:</span>
+  426         <span class="n">Fragments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">rdmolops</span><span class="o">.</span><span class="n">GetMolFrags</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">asMols</span> <span class="o">=</span> <span class="bp">True</span><span class="p">))</span>
+  427         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Fragments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+  428             <span class="n">Mols</span> <span class="o">=</span> <span class="n">Fragments</span>
+  429 
+  430     <span class="c1"># Setup geometry string for Ps4...</span>
+  431     <span class="n">GeometryList</span> <span class="o">=</span> <span class="p">[]</span>
+  432     <span class="n">FragMolCount</span> <span class="o">=</span> <span class="mi">0</span>
+  433     
+  434     <span class="k">for</span> <span class="n">FragMol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+  435         <span class="n">FragMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  436         <span class="k">if</span> <span class="n">FragMolCount</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+  437             <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+  438             
+  439         <span class="n">AtomSymbols</span> <span class="o">=</span> <span class="n">GetAtomSymbols</span><span class="p">(</span><span class="n">FragMol</span><span class="p">)</span>
+  440         <span class="n">AtomPositions</span> <span class="o">=</span> <span class="n">GetAtomPositions</span><span class="p">(</span><span class="n">FragMol</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">)</span>
+  441         
+  442         <span class="k">for</span> <span class="n">AtomSymbol</span><span class="p">,</span> <span class="n">AtomPosition</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">AtomSymbols</span><span class="p">,</span> <span class="n">AtomPositions</span><span class="p">):</span>
+  443             <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">AtomSymbol</span><span class="p">,</span> <span class="n">AtomPosition</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">AtomPosition</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">AtomPosition</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+  444 
+  445         <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolFormalCharge</span><span class="p">,</span> <span class="n">MolSpinMultiplicity</span><span class="p">))</span>
+  446         
+  447     <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;units angstrom&quot;</span><span class="p">)</span>
+  448     
+  449     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Symmetry</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  450         <span class="n">Name</span> <span class="o">=</span> <span class="s1">&#39;Symmetry&#39;</span>
+  451         <span class="k">if</span> <span class="p">(</span><span class="n">Mol</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="n">Name</span><span class="p">)):</span>
+  452             <span class="n">Symmetry</span> <span class="o">=</span>  <span class="n">Mol</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span>
+  453         <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;symmetry </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Symmetry</span><span class="p">)</span>
+  454     
+  455     <span class="k">if</span> <span class="n">NoCom</span><span class="p">:</span>
+  456         <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;no_com&quot;</span><span class="p">)</span>
+  457         
+  458     <span class="k">if</span> <span class="n">NoReorient</span><span class="p">:</span>
+  459         <span class="n">GeometryList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;no_reorient&quot;</span><span class="p">)</span>
+  460 
+  461     <span class="n">Geometry</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">GeometryList</span><span class="p">)</span>
+  462 
+  463     <span class="k">return</span> <span class="n">Geometry</span>
+  464 
+  465 <span class="k">def</span> <span class="nf">GetNumFragments</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  466     <span class="sd">&quot;&quot;&quot;Get number of fragment in a molecule.</span>
+  467 
+  468 <span class="sd">    Arguments:</span>
+  469 <span class="sd">        Atom (object): RDKit molecule object.</span>
+  470 
+  471 <span class="sd">    Returns:</span>
+  472 <span class="sd">        int : Number of fragments.</span>
+  473 
+  474 <span class="sd">    &quot;&quot;&quot;</span>
+  475     
+  476     <span class="n">Fragments</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdmolops</span><span class="o">.</span><span class="n">GetMolFrags</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">asMols</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+  477     
+  478     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">Fragments</span><span class="p">)</span> <span class="k">if</span> <span class="n">Fragments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">0</span>
+  479 
+  480 <span class="k">def</span> <span class="nf">GetNumHeavyAtomNeighbors</span><span class="p">(</span><span class="n">Atom</span><span class="p">):</span>
+  481     <span class="sd">&quot;&quot;&quot;Get number of heavy atom neighbors.</span>
+  482 
+  483 <span class="sd">    Arguments:</span>
+  484 <span class="sd">        Atom (object): RDKit atom object.</span>
+  485 
+  486 <span class="sd">    Returns:</span>
+  487 <span class="sd">        int : Number of neighbors.</span>
+  488 
+  489 <span class="sd">    &quot;&quot;&quot;</span>
+  490     
+  491     <span class="n">NbrCount</span> <span class="o">=</span> <span class="mi">0</span>
+  492     <span class="k">for</span> <span class="n">AtomNbr</span> <span class="ow">in</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+  493         <span class="k">if</span> <span class="n">AtomNbr</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+  494             <span class="n">NbrCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  495     
+  496     <span class="k">return</span> <span class="n">NbrCount</span>
+  497 
+  498 <span class="k">def</span> <span class="nf">GetHeavyAtomNeighbors</span><span class="p">(</span><span class="n">Atom</span><span class="p">):</span>
+  499     <span class="sd">&quot;&quot;&quot;Get a list of heavy atom neighbors.</span>
+  500 
+  501 <span class="sd">    Arguments:</span>
+  502 <span class="sd">        Atom (object): RDKit atom object.</span>
+  503 
+  504 <span class="sd">    Returns:</span>
+  505 <span class="sd">        list : List of heavy atom neighbors.</span>
+  506 
+  507 <span class="sd">    &quot;&quot;&quot;</span>
+  508     
+  509     <span class="n">AtomNeighbors</span> <span class="o">=</span> <span class="p">[]</span>
+  510     <span class="k">for</span> <span class="n">AtomNbr</span> <span class="ow">in</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+  511         <span class="k">if</span> <span class="n">AtomNbr</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+  512             <span class="n">AtomNeighbors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AtomNbr</span><span class="p">)</span>
+  513     
+  514     <span class="k">return</span> <span class="n">AtomNeighbors</span>
+  515 
+  516 <span class="k">def</span> <span class="nf">IsValidElementSymbol</span><span class="p">(</span><span class="n">ElementSymbol</span><span class="p">):</span>
+  517     <span class="sd">&quot;&quot;&quot;Validate element symbol.</span>
+  518 <span class="sd">    </span>
+  519 <span class="sd">    Arguments:</span>
+  520 <span class="sd">        ElementSymbol (str): Element symbol</span>
+  521 
+  522 <span class="sd">    Returns:</span>
+  523 <span class="sd">        bool : True - Valid element symbol; Otherwise, false. </span>
+  524 
+  525 <span class="sd">    &quot;&quot;&quot;</span>
+  526 
+  527     <span class="k">try</span><span class="p">:</span>
+  528         <span class="n">AtomicNumber</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetPeriodicTable</span><span class="p">()</span><span class="o">.</span><span class="n">GetAtomicNumber</span><span class="p">(</span><span class="n">ElementSymbol</span><span class="p">)</span>
+  529         <span class="n">Status</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">AtomicNumber</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="k">else</span> <span class="bp">False</span>
+  530     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  531         <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span>
+  532     
+  533     <span class="k">return</span> <span class="n">Status</span>
+  534 
+  535 <span class="k">def</span> <span class="nf">IsValidAtomIndex</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">):</span>
+  536     <span class="sd">&quot;&quot;&quot;Validate presence  atom index in a molecule.</span>
+  537 <span class="sd">    </span>
+  538 <span class="sd">    Arguments:</span>
+  539 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  540 <span class="sd">        AtomIndex (int): Atom index.</span>
+  541 
+  542 <span class="sd">    Returns:</span>
+  543 <span class="sd">        bool : True - Valid atom index; Otherwise, false. </span>
+  544 
+  545 <span class="sd">    &quot;&quot;&quot;</span>
+  546     <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+  547         <span class="k">if</span> <span class="n">AtomIndex</span> <span class="o">==</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">():</span>
+  548             <span class="k">return</span> <span class="bp">True</span>
+  549     
+  550     <span class="k">return</span> <span class="bp">False</span>
+  551 
+  552 <span class="k">def</span> <span class="nf">AreHydrogensMissingInMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  553     <span class="sd">&quot;&quot;&quot;Check for any missing hydrogens in  in a molecue.</span>
+  554 
+  555 <span class="sd">    Arguments:</span>
+  556 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  557 
+  558 <span class="sd">    Returns:</span>
+  559 <span class="sd">        bool : True - Missing hydrogens; Otherwise, false. </span>
+  560 
+  561 <span class="sd">    &quot;&quot;&quot;</span>
+  562 
+  563     <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+  564         <span class="n">NumExplicitAndImplicitHs</span> <span class="o">=</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNumExplicitHs</span><span class="p">()</span> <span class="o">+</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNumImplicitHs</span><span class="p">()</span>
+  565         <span class="k">if</span> <span class="n">NumExplicitAndImplicitHs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+  566             <span class="k">return</span> <span class="bp">True</span>
+  567 
+  568     <span class="k">return</span> <span class="bp">False</span>
+  569 
+  570 <span class="k">def</span> <span class="nf">AreAtomIndicesSequentiallyConnected</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">):</span>
+  571     <span class="sd">&quot;&quot;&quot;Check for the presence bonds between sequential pairs of atoms in a</span>
+  572 <span class="sd">    molecule.</span>
+  573 <span class="sd">    </span>
+  574 <span class="sd">    Arguments:</span>
+  575 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  576 <span class="sd">        AtomIndices (list): List of atom indices.</span>
+  577 
+  578 <span class="sd">    Returns:</span>
+  579 <span class="sd">        bool : True - Sequentially connected; Otherwise, false. </span>
+  580 
+  581 <span class="sd">    &quot;&quot;&quot;</span>
+  582 
+  583     <span class="k">for</span> <span class="n">Index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">AtomIndices</span><span class="p">)</span> <span class="o">-</span><span class="mi">1</span><span class="p">)):</span>
+  584         <span class="n">Bond</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">AtomIndices</span><span class="p">[</span><span class="n">Index</span><span class="p">],</span> <span class="n">AtomIndices</span><span class="p">[</span><span class="n">Index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+  585         <span class="k">if</span> <span class="n">Bond</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  586             <span class="k">return</span> <span class="bp">False</span>
+  587         
+  588         <span class="k">if</span> <span class="n">Bond</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  589             <span class="k">return</span> <span class="bp">False</span>
+  590     
+  591     <span class="k">return</span> <span class="bp">True</span>
+  592     
+  593 <span class="k">def</span> <span class="nf">ReorderAtomIndicesInSequentiallyConnectedManner</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">):</span>
+  594     <span class="sd">&quot;&quot;&quot;Check for the presence of sequentially connected list of atoms in an</span>
+  595 <span class="sd">    arbitray list of atoms in molecule.</span>
+  596 <span class="sd">   </span>
+  597 <span class="sd">    Arguments:</span>
+  598 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  599 <span class="sd">        AtomIndices (list): List of atom indices.</span>
+  600 
+  601 <span class="sd">    Returns:</span>
+  602 <span class="sd">        bool : True - Sequentially connected list found; Otherwise, false. </span>
+  603 <span class="sd">        list : List of seqeuntially connected atoms or None.</span>
+  604 
+  605 <span class="sd">    &quot;&quot;&quot;</span>
+  606     
+  607     <span class="c1"># Count the number of neighbors for specified atom indices ensuring</span>
+  608     <span class="c1"># that the neighbors are also part of atom indices...</span>
+  609     <span class="n">AtomNbrsCount</span> <span class="o">=</span> <span class="p">{}</span>
+  610     <span class="k">for</span> <span class="n">AtomIndex</span> <span class="ow">in</span> <span class="n">AtomIndices</span><span class="p">:</span>
+  611         <span class="n">Atom</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+  612         
+  613         <span class="n">AtomNbrsCount</span><span class="p">[</span><span class="n">AtomIndex</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+  614         <span class="k">for</span> <span class="n">AtomNbr</span> <span class="ow">in</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+  615             <span class="n">AtomNbrIndex</span> <span class="o">=</span> <span class="n">AtomNbr</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+  616             <span class="k">if</span> <span class="n">AtomNbrIndex</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">AtomIndices</span><span class="p">:</span>
+  617                 <span class="k">continue</span>
+  618             <span class="n">AtomNbrsCount</span><span class="p">[</span><span class="n">AtomIndex</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+  619     
+  620     <span class="c1"># Number of neighbors for each specified atom indices must be 1 or 2</span>
+  621     <span class="c1"># for sequentially connected list of atom indices...</span>
+  622     <span class="n">AtomsWithOneNbr</span> <span class="o">=</span> <span class="p">[]</span>
+  623     <span class="k">for</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">NbrsCount</span>  <span class="ow">in</span> <span class="n">AtomNbrsCount</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+  624         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">NbrsCount</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">NbrsCount</span> <span class="o">==</span><span class="mi">2</span><span class="p">):</span>
+  625             <span class="k">return</span> <span class="p">(</span><span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+  626         
+  627         <span class="k">if</span> <span class="n">NbrsCount</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+  628             <span class="n">AtomsWithOneNbr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+  629 
+  630     <span class="c1"># A sequentially connected list of indices must have two atom indices with</span>
+  631     <span class="c1"># exactly # one neighbor...</span>
+  632     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">AtomsWithOneNbr</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+  633             <span class="k">return</span> <span class="p">(</span><span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+  634 
+  635     <span class="c1"># Setup a reordered list of sequentially connected atoms...</span>
+  636     <span class="n">ReorderedAtomIndices</span> <span class="o">=</span> <span class="p">[]</span>
+  637     
+  638     <span class="n">AtomIndex1</span><span class="p">,</span> <span class="n">AtomIndex2</span> <span class="o">=</span> <span class="n">AtomsWithOneNbr</span>
+  639     <span class="n">AtomIndex</span> <span class="o">=</span> <span class="n">AtomIndex1</span> <span class="k">if</span> <span class="n">AtomIndex1</span> <span class="o">&lt;</span> <span class="n">AtomIndex2</span> <span class="k">else</span> <span class="n">AtomIndex2</span>
+  640     <span class="n">ReorderedAtomIndices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+  641 
+  642     <span class="k">while</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ReorderedAtomIndices</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">AtomIndices</span><span class="p">)):</span>
+  643         <span class="n">Atom</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+  644         
+  645         <span class="k">for</span> <span class="n">AtomNbr</span> <span class="ow">in</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+  646             <span class="n">AtomNbrIndex</span> <span class="o">=</span> <span class="n">AtomNbr</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+  647             <span class="k">if</span> <span class="n">AtomNbrIndex</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">AtomIndices</span><span class="p">:</span>
+  648                 <span class="k">continue</span>
+  649             
+  650             <span class="k">if</span> <span class="n">AtomNbrIndex</span> <span class="ow">in</span> <span class="n">ReorderedAtomIndices</span><span class="p">:</span>
+  651                 <span class="k">continue</span>
+  652             
+  653             <span class="c1"># Treat neighbor as next connected atom...</span>
+  654             <span class="n">AtomIndex</span> <span class="o">=</span> <span class="n">AtomNbrIndex</span>
+  655             <span class="n">ReorderedAtomIndices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+  656             <span class="k">break</span>
+  657 
+  658     <span class="c1"># Check reorderd list size...</span>
+  659     <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ReorderedAtomIndices</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">AtomIndices</span><span class="p">)):</span>
+  660         <span class="k">return</span> <span class="p">(</span><span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+  661 
+  662     <span class="c1"># A final check to validate reorderd list...</span>
+  663     <span class="k">if</span> <span class="ow">not</span> <span class="n">AreAtomIndicesSequentiallyConnected</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">ReorderedAtomIndices</span><span class="p">):</span>
+  664         <span class="k">return</span> <span class="p">(</span><span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+  665     
+  666     <span class="k">return</span> <span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="n">ReorderedAtomIndices</span><span class="p">)</span>
+  667 
+  668 <span class="k">def</span> <span class="nf">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">AllProps</span><span class="p">):</span>
+  669     <span class="sd">&quot;&quot;&quot;Encode RDkit molecule object into a base64 encoded string. The properties</span>
+  670 <span class="sd">    can be optionally excluded.</span>
+  671 <span class="sd">    </span>
+  672 <span class="sd">    The molecule is pickled using RDKit Mol.ToBinary() function before</span>
+  673 <span class="sd">    their encoding.</span>
+  674 <span class="sd">   </span>
+  675 <span class="sd">    Arguments:</span>
+  676 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  677 <span class="sd">        PropertyPickleFlags: RDKit property pickle options.</span>
+  678 
+  679 <span class="sd">    Returns:</span>
+  680 <span class="sd">        str : Base64 encode molecule string or None.</span>
+  681 
+  682 <span class="sd">    Notes:</span>
+  683 <span class="sd">        The following property pickle flags are currently available in RDKit:</span>
+  684 <span class="sd">            </span>
+  685 <span class="sd">            Chem.PropertyPickleOptions.NoProps</span>
+  686 <span class="sd">            Chem.PropertyPickleOptions.MolProps</span>
+  687 <span class="sd">            Chem.PropertyPickleOptions.AtomProps</span>
+  688 <span class="sd">            Chem.PropertyPickleOptions.BondProps</span>
+  689 <span class="sd">            Chem.PropertyPickleOptions.PrivateProps</span>
+  690 <span class="sd">            Chem.PropertyPickleOptions.AllProps</span>
+  691 
+  692 <span class="sd">    &quot;&quot;&quot;</span>
+  693 
+  694     <span class="k">return</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">Mol</span><span class="o">.</span><span class="n">ToBinary</span><span class="p">(</span><span class="n">PropertyPickleFlags</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+  695 
+  696 <span class="k">def</span> <span class="nf">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">):</span>
+  697     <span class="sd">&quot;&quot;&quot;Generate a RDKit molecule object from a base64 encoded string.</span>
+  698 <span class="sd">    </span>
+  699 <span class="sd">    Arguments:</span>
+  700 <span class="sd">        str: Base64 encoded molecule string.</span>
+  701 
+  702 <span class="sd">    Returns:</span>
+  703 <span class="sd">        object : RDKit molecule object or None.</span>
+  704 
+  705 <span class="sd">    &quot;&quot;&quot;</span>
+  706 
+  707     <span class="k">return</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">))</span>
+  708 
+  709 <span class="k">def</span> <span class="nf">GenerateBase64EncodedMolStrings</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">AllProps</span><span class="p">):</span>
+  710     <span class="sd">&quot;&quot;&quot;Setup an iterator for generating base64 encoded molecule string</span>
+  711 <span class="sd">    from a RDKit molecule iterator. The iterator returns a list containing</span>
+  712 <span class="sd">    a molecule index and encoded molecule string or None.</span>
+  713 <span class="sd">    </span>
+  714 <span class="sd">    The molecules are pickled using RDKit Mol.ToBinary() function</span>
+  715 <span class="sd">    before their encoding.</span>
+  716 <span class="sd">    </span>
+  717 <span class="sd">    Arguments:</span>
+  718 <span class="sd">        iterator: RDKit molecules iterator.</span>
+  719 <span class="sd">        PropertyFlags: RDKit property pickle options.</span>
+  720 
+  721 <span class="sd">    Returns:</span>
+  722 <span class="sd">        object : Base64 endcoded molecules iterator. The iterator returns a</span>
+  723 <span class="sd">            list containing a molecule index and an encoded molecule string</span>
+  724 <span class="sd">            or None.</span>
+  725 
+  726 <span class="sd">    Notes:</span>
+  727 <span class="sd">        The following property pickle flags are currently available in RDKit:</span>
+  728 <span class="sd">            </span>
+  729 <span class="sd">            Chem.PropertyPickleOptions.NoProps</span>
+  730 <span class="sd">            Chem.PropertyPickleOptions.MolProps</span>
+  731 <span class="sd">            Chem.PropertyPickleOptions.AtomProps</span>
+  732 <span class="sd">            Chem.PropertyPickleOptions.BondProps</span>
+  733 <span class="sd">            Chem.PropertyPickleOptions.PrivateProps</span>
+  734 <span class="sd">            Chem.PropertyPickleOptions.AllProps</span>
+  735 
+  736 <span class="sd">    Examples:</span>
+  737 
+  738 <span class="sd">        EncodedMolsInfo = GenerateBase64EncodedMolStrings(Mols)</span>
+  739 <span class="sd">        for MolIndex, EncodedMol in EncodedMolsInfo:</span>
+  740 <span class="sd">            if EncodeMol is not None:</span>
+  741 <span class="sd">                Mol = MolFromBase64EncodedMolString(EncodedMol)</span>
+  742 
+  743 <span class="sd">    &quot;&quot;&quot;</span>
+  744     <span class="k">for</span> <span class="n">MolIndex</span><span class="p">,</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Mols</span><span class="p">):</span>
+  745         <span class="k">yield</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span> <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span><span class="p">)]</span>
+  746 
+  747 <span class="k">def</span> <span class="nf">GenerateBase64EncodedMolStringsWithIDs</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">MolIDs</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">AllProps</span><span class="p">):</span>
+  748     <span class="sd">&quot;&quot;&quot;Setup an iterator for generating base64 encoded molecule string</span>
+  749 <span class="sd">    from a RDKit molecule iterator. The iterator returns a list containing</span>
+  750 <span class="sd">    a molecule ID and encoded molecule string or None.</span>
+  751 <span class="sd">    </span>
+  752 <span class="sd">    The molecules are pickled using RDKit Mol.ToBinary() function</span>
+  753 <span class="sd">    before their encoding.</span>
+  754 <span class="sd">    </span>
+  755 <span class="sd">    Arguments:</span>
+  756 <span class="sd">        iterator: RDKit molecules iterator.</span>
+  757 <span class="sd">        MolIDs (list): Molecule IDs.</span>
+  758 <span class="sd">        PropertyFlags: RDKit property pickle options.</span>
+  759 
+  760 <span class="sd">    Returns:</span>
+  761 <span class="sd">        object : Base64 endcoded molecules iterator. The iterator returns a</span>
+  762 <span class="sd">            list containing a molecule ID and an encoded molecule string</span>
+  763 <span class="sd">            or None.</span>
+  764 
+  765 <span class="sd">    Notes:</span>
+  766 <span class="sd">        The following property pickle flags are currently available in RDKit:</span>
+  767 <span class="sd">            </span>
+  768 <span class="sd">            Chem.PropertyPickleOptions.NoProps</span>
+  769 <span class="sd">            Chem.PropertyPickleOptions.MolProps</span>
+  770 <span class="sd">            Chem.PropertyPickleOptions.AtomProps</span>
+  771 <span class="sd">            Chem.PropertyPickleOptions.BondProps</span>
+  772 <span class="sd">            Chem.PropertyPickleOptions.PrivateProps</span>
+  773 <span class="sd">            Chem.PropertyPickleOptions.AllProps</span>
+  774 
+  775 <span class="sd">    Examples:</span>
+  776 
+  777 <span class="sd">        EncodedMolsInfo = GenerateBase64EncodedMolStringsWithIDs(Mols)</span>
+  778 <span class="sd">        for MolID, EncodedMol in EncodedMolsInfo:</span>
+  779 <span class="sd">            if EncodeMol is not None:</span>
+  780 <span class="sd">                Mol = MolFromBase64EncodedMolString(EncodedMol)</span>
+  781 
+  782 <span class="sd">    &quot;&quot;&quot;</span>
+  783     <span class="k">for</span> <span class="n">MolIndex</span><span class="p">,</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Mols</span><span class="p">):</span>
+  784         <span class="k">yield</span> <span class="p">[</span><span class="n">MolIDs</span><span class="p">[</span><span class="n">MolIndex</span><span class="p">],</span> <span class="bp">None</span><span class="p">]</span> <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">MolIDs</span><span class="p">[</span><span class="n">MolIndex</span><span class="p">],</span> <span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span><span class="p">)]</span>
+  785 
+  786 <span class="k">def</span> <span class="nf">GenerateBase64EncodedMolStringWithConfIDs</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolIndex</span><span class="p">,</span> <span class="n">ConfIDs</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">AllProps</span><span class="p">):</span>
+  787     <span class="sd">&quot;&quot;&quot;Setup an iterator generating base64 encoded molecule string for a </span>
+  788 <span class="sd">    molecule. The iterator returns a list containing a molecule index, an encoded</span>
+  789 <span class="sd">    molecule string, and conf ID.</span>
+  790 <span class="sd">    </span>
+  791 <span class="sd">    The molecules are pickled using RDKit Mol.ToBinary() function</span>
+  792 <span class="sd">    before their encoding.</span>
+  793 <span class="sd">    </span>
+  794 <span class="sd">    Arguments:</span>
+  795 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  796 <span class="sd">        MolIndex (int): Molecule index.</span>
+  797 <span class="sd">        ConfIDs (list): Conformer IDs.</span>
+  798 <span class="sd">        PropertyFlags: RDKit property pickle options.</span>
+  799 
+  800 <span class="sd">    Returns:</span>
+  801 <span class="sd">        object : Base64 endcoded molecules iterator. The iterator returns a</span>
+  802 <span class="sd">            list containing a molecule index, an encoded molecule string, and</span>
+  803 <span class="sd">            conf ID.</span>
+  804 
+  805 <span class="sd">    Notes:</span>
+  806 <span class="sd">        The following property pickle flags are currently available in RDKit:</span>
+  807 <span class="sd">            </span>
+  808 <span class="sd">            Chem.PropertyPickleOptions.NoProps</span>
+  809 <span class="sd">            Chem.PropertyPickleOptions.MolProps</span>
+  810 <span class="sd">            Chem.PropertyPickleOptions.AtomProps</span>
+  811 <span class="sd">            Chem.PropertyPickleOptions.BondProps</span>
+  812 <span class="sd">            Chem.PropertyPickleOptions.PrivateProps</span>
+  813 <span class="sd">            Chem.PropertyPickleOptions.AllProps</span>
+  814 
+  815 <span class="sd">    Examples:</span>
+  816 
+  817 <span class="sd">        EncodedMolsInfo = GenerateBase64EncodedMolStringWithConfIDs(Mol, MolIndex, ConfIDs)</span>
+  818 <span class="sd">        for MolIndex, EncodedMol, ConfID in EncodedMolsInfo:</span>
+  819 <span class="sd">            if EncodeMol is not None:</span>
+  820 <span class="sd">                Mol = MolFromBase64EncodedMolString(EncodedMol)</span>
+  821 
+  822 <span class="sd">    &quot;&quot;&quot;</span>
+  823     <span class="k">for</span> <span class="n">ConfID</span> <span class="ow">in</span> <span class="n">ConfIDs</span><span class="p">:</span>
+  824         <span class="k">yield</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">]</span> <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span><span class="p">),</span> <span class="n">ConfID</span><span class="p">]</span>
+  825 
+  826 <span class="k">def</span> <span class="nf">AreAtomMapNumbersPresentInMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  827     <span class="sd">&quot;&quot;&quot;Check for the presence of atom map numbers in a molecue.</span>
+  828 <span class="sd">    </span>
+  829 <span class="sd">    Arguments:</span>
+  830 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  831 
+  832 <span class="sd">    Returns:</span>
+  833 <span class="sd">        bool : True - Atom map numbers present; Otherwise, false. </span>
+  834 
+  835 <span class="sd">    &quot;&quot;&quot;</span>
+  836 
+  837     <span class="k">return</span> <span class="bp">False</span> <span class="k">if</span> <span class="n">_GetAtomMapIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">True</span>
+  838 
+  839 <span class="k">def</span> <span class="nf">ClearAtomMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AllowImplicitValence</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">ClearRadicalElectrons</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+  840     <span class="sd">&quot;&quot;&quot;Check and clear atom map numbers in a molecule. In addition, allow implicit</span>
+  841 <span class="sd">    valence and clear radical electrons for atoms with associated map numbers.</span>
+  842 <span class="sd">    </span>
+  843 <span class="sd">    For example, the following atomic properties are assigned by RDKit to atom</span>
+  844 <span class="sd">    map number 1 in a molecule corresponding to SMILES C[C:1](C)C:</span>
+  845 <span class="sd">    </span>
+  846 <span class="sd">    NoImplicit: True; ImplicitValence: 0; ExplicitValence: 3; NumExplicitHs: 0;</span>
+  847 <span class="sd">    NumImplicitHs: 0; NumRadicalElectrons: 1</span>
+  848 <span class="sd">    </span>
+  849 <span class="sd">    This function clears atoms map numbers in the molecule leading to SMILES </span>
+  850 <span class="sd">    CC(C)C, along with optionally updating atomic properties as shown below:</span>
+  851 <span class="sd">    </span>
+  852 <span class="sd">    NoImplicit: False; ImplicitValence: 1; ExplicitValence: 3; NumExplicitHs: 0;</span>
+  853 <span class="sd">    NumImplicitHs: 1; NumRadicalElectrons: 0</span>
+  854 <span class="sd">    </span>
+  855 <span class="sd">    Arguments:</span>
+  856 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  857 
+  858 <span class="sd">    Returns:</span>
+  859 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  860 
+  861 <span class="sd">    &quot;&quot;&quot;</span>
+  862     
+  863     <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="n">GetAtomMapIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  864     
+  865     <span class="k">if</span> <span class="n">AtomMapIndices</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  866         <span class="k">return</span> <span class="n">Mol</span>
+  867     
+  868     <span class="k">for</span> <span class="n">AtomMapIndex</span> <span class="ow">in</span> <span class="n">AtomMapIndices</span><span class="p">:</span>
+  869         <span class="n">Atom</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">AtomMapIndex</span><span class="p">)</span>
+  870         
+  871         <span class="c1"># Clear map number property &#39;molAtomMapNumber&#39;...</span>
+  872         <span class="n">Atom</span><span class="o">.</span><span class="n">SetAtomMapNum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+  873         
+  874         <span class="c1"># Allow implit valence...</span>
+  875         <span class="k">if</span> <span class="n">AllowImplicitValence</span><span class="p">:</span>
+  876             <span class="n">Atom</span><span class="o">.</span><span class="n">SetNoImplicit</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+  877         
+  878         <span class="c1"># Set number of electrons to 0...</span>
+  879         <span class="k">if</span> <span class="n">ClearRadicalElectrons</span><span class="p">:</span>
+  880             <span class="n">Atom</span><span class="o">.</span><span class="n">SetNumRadicalElectrons</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+  881         
+  882         <span class="n">Atom</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+  883     
+  884     <span class="n">Mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+  885 
+  886     <span class="k">return</span> <span class="n">Mol</span>
+  887 
+  888 <span class="k">def</span> <span class="nf">GetAtomMapIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  889     <span class="sd">&quot;&quot;&quot;Get a list of available atom indices corresponding to atom map numbers</span>
+  890 <span class="sd">    present in a SMILES/SMARTS pattern used for creating a molecule. The list of</span>
+  891 <span class="sd">    atom indices is sorted in ascending order by atom map numbers.</span>
+  892 <span class="sd">    </span>
+  893 <span class="sd">    Arguments:</span>
+  894 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  895 
+  896 <span class="sd">    Returns:</span>
+  897 <span class="sd">        list : List of atom indices sorted in the ascending order of atom map</span>
+  898 <span class="sd">            numbers or None.</span>
+  899 
+  900 <span class="sd">    &quot;&quot;&quot;</span>
+  901     
+  902     <span class="k">return</span> <span class="n">_GetAtomMapIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  903 
+  904 <span class="k">def</span> <span class="nf">GetAtomMapIndicesAndMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  905     <span class="sd">&quot;&quot;&quot;Get lists of available atom indices and atom map numbers present in a</span>
+  906 <span class="sd">    SMILES/SMARTS pattern used for creating a molecule. Both lists are sorted</span>
+  907 <span class="sd">    in ascending order by atom map numbers.</span>
+  908 <span class="sd">    </span>
+  909 <span class="sd">    Arguments:</span>
+  910 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  911 
+  912 <span class="sd">    Returns:</span>
+  913 <span class="sd">        list : List of atom indices sorted in the ascending order of atom map</span>
+  914 <span class="sd">            numbers or None.</span>
+  915 <span class="sd">        list : List of atom map numbers sorted in the ascending order or None.</span>
+  916 
+  917 <span class="sd">    &quot;&quot;&quot;</span>
+  918     
+  919     <span class="k">return</span> <span class="p">(</span><span class="n">_GetAtomMapIndicesAndMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">))</span>
+  920 
+  921 <span class="k">def</span> <span class="nf">MolFromSubstructureMatch</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">FilterByAtomMapNums</span> <span class="o">=</span> <span class="bp">False</span><span class="p">):</span>
+  922     <span class="sd">&quot;&quot;&quot;Generate a RDKit molecule object for a list of matched atom indices</span>
+  923 <span class="sd">    present in a pattern molecule. The list of atom indices correspond to a</span>
+  924 <span class="sd">    list retrieved by RDKit function GetSubstructureMatches using SMILES/SMARTS</span>
+  925 <span class="sd">    pattern. The atom indices are optionally filtered by mapping atom numbers</span>
+  926 <span class="sd">    to appropriate atom indices during the generation of the molecule. For</span>
+  927 <span class="sd">    example: [O:1]=[S:2](=[O])[C:3][C:4].</span>
+  928 <span class="sd">    </span>
+  929 <span class="sd">    Arguments:</span>
+  930 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  931 <span class="sd">        PatternMol (object): RDKit molecule object for a SMILES/SMARTS pattern.</span>
+  932 <span class="sd">        AtomIndices (list): Atom indices.</span>
+  933 <span class="sd">        FilterByAtomMapNums (bool): Filter matches by atom map numbers.</span>
+  934 
+  935 <span class="sd">    Returns:</span>
+  936 <span class="sd">        object : RDKit molecule object or None.</span>
+  937 
+  938 <span class="sd">    &quot;&quot;&quot;</span>
+  939 
+  940     <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="n">_GetAtomMapIndices</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">)</span> <span class="k">if</span> <span class="n">FilterByAtomMapNums</span> <span class="k">else</span> <span class="bp">None</span>
+  941 
+  942     <span class="k">return</span> <span class="p">(</span><span class="n">_MolFromSubstructureMatch</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">AtomMapIndices</span><span class="p">))</span>
+  943 
+  944 <span class="k">def</span> <span class="nf">MolsFromSubstructureMatches</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndicesList</span><span class="p">,</span> <span class="n">FilterByAtomMapNums</span> <span class="o">=</span> <span class="bp">False</span><span class="p">):</span>
+  945     <span class="sd">&quot;&quot;&quot;Generate  a list of RDKit molecule objects for a list containing lists of</span>
+  946 <span class="sd">    matched atom indices present in a pattern molecule. The list of atom indices</span>
+  947 <span class="sd">    correspond to a list retrieved by RDKit function GetSubstructureMatches using</span>
+  948 <span class="sd">    SMILES/SMARTS pattern. The atom indices are optionally filtered by mapping</span>
+  949 <span class="sd">    atom numbers to appropriate atom indices during the generation of the molecule. For</span>
+  950 <span class="sd">    example: [O:1]=[S:2](=[O])[C:3][C:4].</span>
+  951 <span class="sd">     </span>
+  952 <span class="sd">    Arguments:</span>
+  953 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  954 <span class="sd">        PatternMol (object): RDKit molecule object for a SMILES/SMARTS pattern.</span>
+  955 <span class="sd">        AtomIndicesList (list): A list of lists containing atom indices.</span>
+  956 <span class="sd">        FilterByAtomMapNums (bool): Filter matches by atom map numbers.</span>
+  957 
+  958 <span class="sd">    Returns:</span>
+  959 <span class="sd">        list : A list of lists containg RDKit molecule objects or None.</span>
+  960 
+  961 <span class="sd">    &quot;&quot;&quot;</span>
+  962 
+  963     <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="n">_GetAtomMapIndices</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">)</span> <span class="k">if</span> <span class="n">FilterByAtomMapNums</span> <span class="k">else</span> <span class="bp">None</span>
+  964 
+  965     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[]</span>
+  966     <span class="k">for</span> <span class="n">AtomIndices</span> <span class="ow">in</span> <span class="n">AtomIndicesList</span><span class="p">:</span>
+  967         <span class="n">Mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_MolFromSubstructureMatch</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">AtomMapIndices</span><span class="p">))</span>
+  968     
+  969     <span class="k">return</span> <span class="n">Mols</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span> <span class="k">else</span> <span class="bp">None</span>
+  970 
+  971 <span class="k">def</span> <span class="nf">FilterSubstructureMatchByAtomMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">):</span>
+  972     <span class="sd">&quot;&quot;&quot;Filter a list of matched atom indices by map atom numbers present in a</span>
+  973 <span class="sd">    pattern molecule. The list of atom indices correspond to a list retrieved by</span>
+  974 <span class="sd">    RDKit function GetSubstructureMatches using SMILES/SMARTS pattern. The</span>
+  975 <span class="sd">    atom map numbers are mapped to appropriate atom indices during the generation</span>
+  976 <span class="sd">    of molecules. For example: [O:1]=[S:2](=[O])[C:3][C:4].</span>
+  977 <span class="sd">    </span>
+  978 <span class="sd">    Arguments:</span>
+  979 <span class="sd">        Mol (object): RDKit molecule object.</span>
+  980 <span class="sd">        PatternMol (object): RDKit molecule object for a SMILES/SMARTS pattern.</span>
+  981 <span class="sd">        AtomIndices (list): Atom indices.</span>
+  982 
+  983 <span class="sd">    Returns:</span>
+  984 <span class="sd">        list : A list of filtered atom indices.</span>
+  985 
+  986 <span class="sd">    &quot;&quot;&quot;</span>
+  987     <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="n">_GetAtomMapIndices</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">)</span>
+  988 
+  989     <span class="k">return</span> <span class="n">_FilterSubstructureMatchByAtomMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">AtomMapIndices</span><span class="p">)</span>
+  990 
+  991 <span class="k">def</span> <span class="nf">FilterSubstructureMatchesByAtomMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndicesList</span><span class="p">):</span>
+  992     <span class="sd">&quot;&quot;&quot;Filter a list of lists containing matched atom indices by map atom numbers</span>
+  993 <span class="sd">    present in a pattern molecule. The list of atom indices correspond to a list retrieved by</span>
+  994 <span class="sd">    RDKit function GetSubstructureMatches using SMILES/SMARTS pattern. The</span>
+  995 <span class="sd">    atom map numbers are mapped to appropriate atom indices during the generation</span>
+  996 <span class="sd">    of molecules. For example: [O:1]=[S:2](=[O])[C:3][C:4].</span>
+  997 <span class="sd">     </span>
+  998 <span class="sd">    Arguments:</span>
+  999 <span class="sd">        Mol (object): RDKit molecule object.</span>
+ 1000 <span class="sd">        PatternMol (object): RDKit molecule object for a SMILES/SMARTS pattern.</span>
+ 1001 <span class="sd">        AtomIndicesList (list): A list of lists containing atom indices.</span>
+ 1002 
+ 1003 <span class="sd">    Returns:</span>
+ 1004 <span class="sd">        list : A list of lists containing filtered atom indices.</span>
+ 1005 
+ 1006 <span class="sd">    &quot;&quot;&quot;</span>
+ 1007     <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="n">_GetAtomMapIndices</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">)</span>
+ 1008 
+ 1009     <span class="n">MatchedAtomIndicesList</span> <span class="o">=</span> <span class="p">[]</span>
+ 1010     <span class="k">for</span> <span class="n">AtomIndices</span> <span class="ow">in</span> <span class="n">AtomIndicesList</span><span class="p">:</span>
+ 1011         <span class="n">MatchedAtomIndicesList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_FilterSubstructureMatchByAtomMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">AtomMapIndices</span><span class="p">))</span>
+ 1012     
+ 1013     <span class="k">return</span> <span class="n">MatchedAtomIndicesList</span>
+ 1014 
+ 1015 <span class="k">def</span> <span class="nf">_MolFromSubstructureMatch</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">AtomMapIndices</span><span class="p">):</span>
+ 1016     <span class="sd">&quot;&quot;&quot;Generate a RDKit molecule object for a list of matched atom indices and available</span>
+ 1017 <span class="sd">   atom map indices.</span>
+ 1018 <span class="sd">    &quot;&quot;&quot;</span>
+ 1019 
+ 1020     <span class="k">if</span> <span class="n">AtomMapIndices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 1021         <span class="n">MatchedAtomIndices</span> <span class="o">=</span> <span class="p">[</span><span class="n">AtomIndices</span><span class="p">[</span><span class="n">Index</span><span class="p">]</span> <span class="k">for</span> <span class="n">Index</span> <span class="ow">in</span> <span class="n">AtomMapIndices</span><span class="p">]</span>
+ 1022     <span class="k">else</span><span class="p">:</span>
+ 1023         <span class="n">MatchedAtomIndices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">AtomIndices</span><span class="p">)</span>
+ 1024 
+ 1025     <span class="k">return</span> <span class="n">_GetMolFromAtomIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MatchedAtomIndices</span><span class="p">)</span>
+ 1026 
+ 1027 <span class="k">def</span> <span class="nf">_GetAtomMapIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 1028     <span class="sd">&quot;&quot;&quot;Get a list of available atom indices corresponding to sorted atom map</span>
+ 1029 <span class="sd">    numbers present in a SMILES/SMARTS pattern used for creating a molecule.</span>
+ 1030 <span class="sd">    &quot;&quot;&quot;</span>
+ 1031     
+ 1032     <span class="n">AtomMapIndices</span><span class="p">,</span> <span class="n">AtomMapNumbers</span> <span class="o">=</span> <span class="n">_GetAtomMapIndicesAndMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 1033     
+ 1034     <span class="k">return</span> <span class="n">AtomMapIndices</span>
+ 1035     
+ 1036 <span class="k">def</span> <span class="nf">_GetAtomMapIndicesAndMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 1037     <span class="sd">&quot;&quot;&quot;Get a list of available atom indices and atom map numbers present</span>
+ 1038 <span class="sd">    in  a SMILES/SMARTS pattern used for creating a molecule. Both lists</span>
+ 1039 <span class="sd">    are sorted in ascending order by atom map numbers.</span>
+ 1040 <span class="sd">    &quot;&quot;&quot;</span>
+ 1041 
+ 1042     <span class="c1"># Setup a atom map number to atom indices map..</span>
+ 1043     <span class="n">AtomMapNumToIndices</span> <span class="o">=</span> <span class="p">{}</span>
+ 1044     <span class="k">for</span> <span class="n">Atom</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+ 1045         <span class="n">AtomMapNum</span> <span class="o">=</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetAtomMapNum</span><span class="p">()</span>
+ 1046         
+ 1047         <span class="k">if</span> <span class="n">AtomMapNum</span><span class="p">:</span>
+ 1048             <span class="n">AtomMapNumToIndices</span><span class="p">[</span><span class="n">AtomMapNum</span><span class="p">]</span> <span class="o">=</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+ 1049     
+ 1050     <span class="c1"># Setup atom indices corresponding to sorted atom map numbers...</span>
+ 1051     <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="bp">None</span>
+ 1052     <span class="n">AtomMapNumbers</span> <span class="o">=</span> <span class="bp">None</span>
+ 1053     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">AtomMapNumToIndices</span><span class="p">):</span>
+ 1054         <span class="n">AtomMapNumbers</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">AtomMapNumToIndices</span><span class="p">)</span>
+ 1055         <span class="n">AtomMapIndices</span> <span class="o">=</span> <span class="p">[</span><span class="n">AtomMapNumToIndices</span><span class="p">[</span><span class="n">AtomMapNum</span><span class="p">]</span> <span class="k">for</span> <span class="n">AtomMapNum</span> <span class="ow">in</span> <span class="n">AtomMapNumbers</span><span class="p">]</span>
+ 1056 
+ 1057     <span class="k">return</span> <span class="p">(</span><span class="n">AtomMapIndices</span><span class="p">,</span> <span class="n">AtomMapNumbers</span><span class="p">)</span>
+ 1058 
+ 1059 <span class="k">def</span> <span class="nf">_FilterSubstructureMatchByAtomMapNumbers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PatternMol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">,</span> <span class="n">AtomMapIndices</span><span class="p">):</span>
+ 1060     <span class="sd">&quot;&quot;&quot;Filter substructure match atom indices by atom map indices corresponding to</span>
+ 1061 <span class="sd">    atom map numbers.</span>
+ 1062 <span class="sd">    &quot;&quot;&quot;</span>
+ 1063     
+ 1064     <span class="k">if</span> <span class="n">AtomMapIndices</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 1065         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">AtomIndices</span><span class="p">)</span>
+ 1066                                                
+ 1067     <span class="k">return</span> <span class="p">[</span><span class="n">AtomIndices</span><span class="p">[</span><span class="n">Index</span><span class="p">]</span> <span class="k">for</span> <span class="n">Index</span> <span class="ow">in</span> <span class="n">AtomMapIndices</span><span class="p">]</span>
+ 1068 
+ 1069 <span class="k">def</span> <span class="nf">_GetMolFromAtomIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndices</span><span class="p">):</span>
+ 1070     <span class="sd">&quot;&quot;&quot;Generate a RDKit molecule object from atom indices returned by</span>
+ 1071 <span class="sd">   substructure search.</span>
+ 1072 <span class="sd">    &quot;&quot;&quot;</span>
+ 1073 
+ 1074     <span class="n">BondIndices</span> <span class="o">=</span> <span class="p">[]</span>
+ 1075     <span class="k">for</span> <span class="n">AtomIndex</span> <span class="ow">in</span> <span class="n">AtomIndices</span><span class="p">:</span>
+ 1076         <span class="n">Atom</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+ 1077         
+ 1078         <span class="k">for</span> <span class="n">AtomNbr</span> <span class="ow">in</span> <span class="n">Atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+ 1079             <span class="n">AtomNbrIndex</span> <span class="o">=</span> <span class="n">AtomNbr</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+ 1080             <span class="k">if</span> <span class="n">AtomNbrIndex</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">AtomIndices</span><span class="p">:</span>
+ 1081                 <span class="k">continue</span>
+ 1082             
+ 1083             <span class="n">BondIndex</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AtomNbrIndex</span><span class="p">)</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+ 1084             <span class="k">if</span> <span class="n">BondIndex</span> <span class="ow">in</span> <span class="n">BondIndices</span><span class="p">:</span>
+ 1085                 <span class="k">continue</span>
+ 1086                 
+ 1087             <span class="n">BondIndices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">BondIndex</span><span class="p">)</span>
+ 1088             
+ 1089     <span class="n">MatchedMol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PathToSubmol</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">BondIndices</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">BondIndices</span><span class="p">)</span> <span class="k">else</span> <span class="bp">None</span>
+ 1090     
+ 1091     <span class="k">return</span> <span class="n">MatchedMol</span>
+ 1092 
+ 1093 <span class="k">def</span> <span class="nf">ConstrainAndEmbed</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">coreMatchesMol</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">useTethers</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">coreConfId</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">randomseed</span><span class="o">=</span><span class="mi">2342</span><span class="p">,</span> <span class="n">getForceField</span><span class="o">=</span><span class="n">AllChem</span><span class="o">.</span><span class="n">UFFGetMoleculeForceField</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+ 1094     <span class="sd">&quot;&quot;&quot;</span>
+ 1095 <span class="sd">    The function is a local copy of RDKit fucntion AllChem.ConstrainedEmbed().</span>
+ 1096 <span class="sd">    It has been enhanced to support an explicit list of core matches corresponding</span>
+ 1097 <span class="sd">    to the matched atom indices in the molecule. The number of matched atom indices</span>
+ 1098 <span class="sd">    must be equal to the number of atoms in core molecule.</span>
+ 1099 
+ 1100 <span class="sd">    Arguments:</span>
+ 1101 <span class="sd">        mol (object): RDKit molecule object to embed.</span>
+ 1102 <span class="sd">        core (object): RDKit molecule to use as a source of constraints.</span>
+ 1103 <span class="sd">        coreMatchesMol (list): A list matches atom indices in mol.</span>
+ 1104 <span class="sd">        useTethers: (bool) if True, the final conformation will be optimized</span>
+ 1105 <span class="sd">            subject to a series of extra forces that pull the matching atoms to</span>
+ 1106 <span class="sd">            the positions of the core atoms. Otherwise simple distance</span>
+ 1107 <span class="sd">            constraints based on the core atoms will be used in the</span>
+ 1108 <span class="sd">            optimization.</span>
+ 1109 <span class="sd">        coreConfId (int): ID of the core conformation to use.</span>
+ 1110 <span class="sd">        randomSeed (int): Seed for the random number generator</span>
+ 1111 
+ 1112 <span class="sd">    Returns:</span>
+ 1113 <span class="sd">        mol (object): RDKit molecule object.</span>
+ 1114 
+ 1115 <span class="sd">    &quot;&quot;&quot;</span>
+ 1116     <span class="k">if</span> <span class="n">coreMatchesMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 1117         <span class="n">match</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetSubstructMatch</span><span class="p">(</span><span class="n">core</span><span class="p">)</span>
+ 1118         <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+ 1119             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Molecule doesn&#39;t match the core.&quot;</span><span class="p">)</span>
+ 1120     <span class="k">else</span><span class="p">:</span>
+ 1121         <span class="k">if</span> <span class="n">core</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coreMatchesMol</span><span class="p">):</span>
+ 1122             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of atoms, </span><span class="si">%s</span><span class="s2">, in core molecule must match number of atom indices, </span><span class="si">%s</span><span class="s2">, specified in the list coreMatchesMol.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">(),</span> <span class="nb">len</span><span class="p">(</span><span class="n">coreMatchesMol</span><span class="p">)))</span>
+ 1123         <span class="c1"># Check specified matched atom indices in  coreMatchesMol and use the match atom</span>
+ 1124         <span class="c1"># indices returned by GetSubstructMatches() for embedding...</span>
+ 1125         <span class="n">coreMatch</span> <span class="o">=</span> <span class="bp">None</span>
+ 1126         <span class="n">matches</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetSubstructMatches</span><span class="p">(</span><span class="n">core</span><span class="p">)</span>
+ 1127         <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+ 1128             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coreMatchesMol</span><span class="p">):</span>
+ 1129                 <span class="k">continue</span>
+ 1130             <span class="n">matchFound</span> <span class="o">=</span> <span class="bp">True</span>
+ 1131             <span class="k">for</span> <span class="n">atomIndex</span> <span class="ow">in</span> <span class="n">match</span><span class="p">:</span>
+ 1132                 <span class="k">if</span> <span class="n">atomIndex</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">coreMatchesMol</span><span class="p">:</span>
+ 1133                     <span class="n">matchFound</span> <span class="o">=</span> <span class="bp">False</span>
+ 1134                     <span class="k">break</span>
+ 1135             <span class="k">if</span> <span class="n">matchFound</span><span class="p">:</span>
+ 1136                 <span class="n">coreMatch</span> <span class="o">=</span> <span class="n">match</span>
+ 1137                 <span class="k">break</span>
+ 1138         <span class="k">if</span> <span class="n">coreMatch</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 1139             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Molecule doesn&#39;t match the atom indices specified in the list coreMatchesMol.&quot;</span><span class="p">)</span>
+ 1140         <span class="n">match</span> <span class="o">=</span> <span class="n">coreMatch</span>
+ 1141     
+ 1142     <span class="n">coordMap</span> <span class="o">=</span> <span class="p">{}</span>
+ 1143     <span class="n">coreConf</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">(</span><span class="n">coreConfId</span><span class="p">)</span>
+ 1144     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idxI</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+ 1145         <span class="n">corePtI</span> <span class="o">=</span> <span class="n">coreConf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+ 1146         <span class="n">coordMap</span><span class="p">[</span><span class="n">idxI</span><span class="p">]</span> <span class="o">=</span> <span class="n">corePtI</span>
+ 1147     
+ 1148     <span class="n">ci</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">EmbedMolecule</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">coordMap</span><span class="o">=</span><span class="n">coordMap</span><span class="p">,</span> <span class="n">randomSeed</span><span class="o">=</span><span class="n">randomseed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+ 1149     <span class="k">if</span> <span class="n">ci</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+ 1150         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Could not embed molecule.&#39;</span><span class="p">)</span>
+ 1151     
+ 1152     <span class="n">algMap</span> <span class="o">=</span> <span class="p">[(</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">match</span><span class="p">)]</span>
+ 1153     
+ 1154     <span class="k">if</span> <span class="ow">not</span> <span class="n">useTethers</span><span class="p">:</span>
+ 1155         <span class="c1"># clean up the conformation</span>
+ 1156         <span class="n">ff</span> <span class="o">=</span> <span class="n">getForceField</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+ 1157         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idxI</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+ 1158             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">match</span><span class="p">)):</span>
+ 1159                 <span class="n">idxJ</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+ 1160                 <span class="n">d</span> <span class="o">=</span> <span class="n">coordMap</span><span class="p">[</span><span class="n">idxI</span><span class="p">]</span><span class="o">.</span><span class="n">Distance</span><span class="p">(</span><span class="n">coordMap</span><span class="p">[</span><span class="n">idxJ</span><span class="p">])</span>
+ 1161                 <span class="n">ff</span><span class="o">.</span><span class="n">AddDistanceConstraint</span><span class="p">(</span><span class="n">idxI</span><span class="p">,</span> <span class="n">idxJ</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="mf">100.</span><span class="p">)</span>
+ 1162         <span class="n">ff</span><span class="o">.</span><span class="n">Initialize</span><span class="p">()</span>
+ 1163         <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
+ 1164         <span class="n">more</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">Minimize</span><span class="p">()</span>
+ 1165         <span class="k">while</span> <span class="n">more</span> <span class="ow">and</span> <span class="n">n</span><span class="p">:</span>
+ 1166             <span class="n">more</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">Minimize</span><span class="p">()</span>
+ 1167             <span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+ 1168         <span class="c1"># rotate the embedded conformation onto the core:</span>
+ 1169         <span class="n">rms</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">AlignMol</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">atomMap</span><span class="o">=</span><span class="n">algMap</span><span class="p">)</span>
+ 1170     <span class="k">else</span><span class="p">:</span>
+ 1171         <span class="c1"># rotate the embedded conformation onto the core:</span>
+ 1172         <span class="n">rms</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">AlignMol</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">atomMap</span><span class="o">=</span><span class="n">algMap</span><span class="p">)</span>
+ 1173         <span class="n">ff</span> <span class="o">=</span> <span class="n">getForceField</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+ 1174         <span class="n">conf</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span>
+ 1175         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()):</span>
+ 1176             <span class="n">p</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+ 1177             <span class="n">pIdx</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">AddExtraPoint</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">z</span><span class="p">,</span> <span class="n">fixed</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+ 1178             <span class="n">ff</span><span class="o">.</span><span class="n">AddDistanceConstraint</span><span class="p">(</span><span class="n">pIdx</span><span class="p">,</span> <span class="n">match</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">100.</span><span class="p">)</span>
+ 1179         <span class="n">ff</span><span class="o">.</span><span class="n">Initialize</span><span class="p">()</span>
+ 1180         <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
+ 1181         <span class="n">more</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">energyTol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">forceTol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+ 1182         <span class="k">while</span> <span class="n">more</span> <span class="ow">and</span> <span class="n">n</span><span class="p">:</span>
+ 1183             <span class="n">more</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">energyTol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">forceTol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+ 1184             <span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+ 1185         <span class="c1"># realign</span>
+ 1186         <span class="n">rms</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">AlignMol</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">atomMap</span><span class="o">=</span><span class="n">algMap</span><span class="p">)</span>
+ 1187 
+ 1188     <span class="n">mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s1">&#39;EmbedRMS&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">rms</span><span class="p">))</span>
+ 1189     <span class="k">return</span> <span class="n">mol</span>
+ 1190 
+ 1191 <span class="k">def</span> <span class="nf">ReadAndValidateMolecules</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="o">**</span><span class="n">KeyWordArgs</span><span class="p">):</span>
+ 1192     <span class="sd">&quot;&quot;&quot;Read molecules from an input file, validate all molecule objects, and return</span>
+ 1193 <span class="sd">    a list of valid and non-valid molecule objects along with their counts.</span>
+ 1194 <span class="sd">    </span>
+ 1195 <span class="sd">    Arguments:</span>
+ 1196 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1197 <span class="sd">        **KeyWordArgs (dictionary) : Parameter name and value pairs for reading and</span>
+ 1198 <span class="sd">            processing molecules.</span>
+ 1199 
+ 1200 <span class="sd">    Returns:</span>
+ 1201 <span class="sd">        list : List of valid RDKit molecule objects.</span>
+ 1202 <span class="sd">        int : Number of total molecules in input file. </span>
+ 1203 <span class="sd">        int : Number of valid molecules in input file. </span>
+ 1204 
+ 1205 <span class="sd">    Notes:</span>
+ 1206 <span class="sd">        The file extension is used to determine type of the file and set up an appropriate</span>
+ 1207 <span class="sd">        file reader.</span>
+ 1208 
+ 1209 <span class="sd">    &quot;&quot;&quot;</span>
+ 1210 
+ 1211     <span class="n">AllowEmptyMols</span> <span class="o">=</span> <span class="bp">True</span>
+ 1212     <span class="k">if</span> <span class="s2">&quot;AllowEmptyMols&quot;</span> <span class="ow">in</span> <span class="n">KeyWordArgs</span><span class="p">:</span>
+ 1213         <span class="n">AllowEmptyMols</span> <span class="o">=</span> <span class="n">KeyWordArgs</span><span class="p">[</span><span class="s2">&quot;AllowEmptyMols&quot;</span><span class="p">]</span>
+ 1214     
+ 1215     <span class="n">Mols</span> <span class="o">=</span> <span class="n">ReadMolecules</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="o">**</span><span class="n">KeyWordArgs</span><span class="p">)</span>
+ 1216 
+ 1217     <span class="k">if</span> <span class="n">AllowEmptyMols</span><span class="p">:</span>
+ 1218         <span class="n">ValidMols</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mol</span> <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span> <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">]</span>
+ 1219     <span class="k">else</span><span class="p">:</span>
+ 1220         <span class="n">ValidMols</span> <span class="o">=</span> <span class="p">[]</span>
+ 1221         <span class="n">MolCount</span> <span class="o">=</span> <span class="mi">0</span>
+ 1222         <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+ 1223             <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 1224             <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 1225                 <span class="k">continue</span>
+ 1226             
+ 1227             <span class="k">if</span> <span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 1228                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 1229                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 1230                 <span class="k">continue</span>
+ 1231             
+ 1232             <span class="n">ValidMols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 1233             
+ 1234     <span class="n">MolCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+ 1235     <span class="n">ValidMolCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ValidMols</span><span class="p">)</span>
+ 1236 
+ 1237     <span class="k">return</span> <span class="p">(</span><span class="n">ValidMols</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">)</span>
+ 1238 
+ 1239 <span class="k">def</span> <span class="nf">ReadMolecules</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="o">**</span><span class="n">KeyWordArgs</span><span class="p">):</span>
+ 1240     <span class="sd">&quot;&quot;&quot;Read molecules from an input file without performing any validation</span>
+ 1241 <span class="sd">    and creation of molecule objects.</span>
+ 1242 <span class="sd">    </span>
+ 1243 <span class="sd">    Arguments:</span>
+ 1244 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1245 <span class="sd">        **KeyWordArgs (dictionary) : Parameter name and value pairs for reading and</span>
+ 1246 <span class="sd">            processing molecules.</span>
+ 1247 
+ 1248 <span class="sd">    Returns:</span>
+ 1249 <span class="sd">        list : List of RDKit molecule objects.</span>
+ 1250 
+ 1251 <span class="sd">    Notes:</span>
+ 1252 <span class="sd">        The file extension is used to determine type of the file and set up an appropriate</span>
+ 1253 <span class="sd">        file reader.</span>
+ 1254 
+ 1255 <span class="sd">    &quot;&quot;&quot;</span>
+ 1256 
+ 1257     <span class="c1"># Set default values for possible arguments...</span>
+ 1258     <span class="n">ReaderArgs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="s2">&quot;StrictParsing&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>  <span class="s2">&quot;SMILESDelimiter&quot;</span> <span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s2">&quot;SMILESColumn&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;SMILESNameColumn&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;SMILESTitleLine&quot;</span><span class="p">:</span> <span class="bp">True</span> <span class="p">}</span>
+ 1259 
+ 1260     <span class="c1"># Set specified values for possible arguments...</span>
+ 1261     <span class="k">for</span> <span class="n">Arg</span> <span class="ow">in</span> <span class="n">ReaderArgs</span><span class="p">:</span>
+ 1262         <span class="k">if</span> <span class="n">Arg</span> <span class="ow">in</span> <span class="n">KeyWordArgs</span><span class="p">:</span>
+ 1263             <span class="n">ReaderArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span> <span class="o">=</span> <span class="n">KeyWordArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span>
+ 1264 
+ 1265     <span class="c1"># Modify specific valeus for SMILES...</span>
+ 1266     <span class="k">if</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;smi csv tsv txt&quot;</span><span class="p">):</span>
+ 1267         <span class="n">Args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">,</span> <span class="s2">&quot;SMILESTitleLine&quot;</span><span class="p">]</span>
+ 1268         <span class="k">for</span> <span class="n">Arg</span> <span class="ow">in</span> <span class="n">Args</span><span class="p">:</span>
+ 1269             <span class="k">if</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+ 1270                 <span class="n">ReaderArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+ 1271             <span class="k">else</span><span class="p">:</span>
+ 1272                 <span class="n">ReaderArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+ 1273     
+ 1274     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[]</span>
+ 1275     <span class="k">if</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;sdf sd&quot;</span><span class="p">):</span>
+ 1276         <span class="k">return</span> <span class="n">ReadMoleculesFromSDFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s1">&#39;StrictParsing&#39;</span><span class="p">])</span>
+ 1277     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;mol&quot;</span><span class="p">):</span>
+ 1278         <span class="k">return</span> <span class="n">ReadMoleculesFromMolFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s1">&#39;StrictParsing&#39;</span><span class="p">])</span>
+ 1279     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;mol2&quot;</span><span class="p">):</span>
+ 1280         <span class="k">return</span> <span class="n">ReadMoleculesFromMol2File</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">])</span>
+ 1281     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;pdb&quot;</span><span class="p">):</span>
+ 1282         <span class="k">return</span> <span class="n">ReadMoleculesFromPDBFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">])</span>
+ 1283     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;smi txt csv tsv&quot;</span><span class="p">):</span>
+ 1284         <span class="n">SMILESColumnIndex</span> <span class="o">=</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;SMILESColumn&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+ 1285         <span class="n">SMILESNameColumnIndex</span> <span class="o">=</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;SMILESNameColumn&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+ 1286         <span class="k">return</span> <span class="n">ReadMoleculesFromSMILESFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;SMILESDelimiter&quot;</span><span class="p">],</span> <span class="n">SMILESColumnIndex</span><span class="p">,</span> <span class="n">SMILESNameColumnIndex</span><span class="p">,</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;SMILESTitleLine&quot;</span><span class="p">],</span> <span class="n">ReaderArgs</span><span class="p">[</span><span class="s2">&quot;Sanitize&quot;</span><span class="p">])</span>
+ 1287     <span class="k">else</span><span class="p">:</span>
+ 1288         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;RDKitUtil.ReadMolecules: Non supported file type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">FileName</span><span class="p">)</span>
+ 1289     
+ 1290     <span class="k">return</span> <span class="n">Mols</span>
+ 1291 
+ 1292 <span class="k">def</span> <span class="nf">ReadMoleculesFromSDFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">Sanitize</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">RemoveHydrogens</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">StrictParsing</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+ 1293     <span class="sd">&quot;&quot;&quot;Read molecules from a SD file.</span>
+ 1294 <span class="sd">    </span>
+ 1295 <span class="sd">    Arguments:</span>
+ 1296 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1297 <span class="sd">        Sanitize (bool): Sanitize molecules.</span>
+ 1298 <span class="sd">        RemoveHydrogens (bool): Remove hydrogens from molecules.</span>
+ 1299 <span class="sd">        StrictParsing (bool): Perform strict parsing.</span>
+ 1300 
+ 1301 <span class="sd">    Returns:</span>
+ 1302 <span class="sd">        list : List of RDKit molecule objects.</span>
+ 1303 
+ 1304 <span class="sd">    &quot;&quot;&quot;</span>
+ 1305     <span class="k">return</span>  <span class="n">Chem</span><span class="o">.</span><span class="n">SDMolSupplier</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">sanitize</span> <span class="o">=</span> <span class="n">Sanitize</span><span class="p">,</span> <span class="n">removeHs</span> <span class="o">=</span> <span class="n">RemoveHydrogens</span><span class="p">,</span> <span class="n">strictParsing</span> <span class="o">=</span> <span class="n">StrictParsing</span><span class="p">)</span>
+ 1306 
+ 1307 <span class="k">def</span> <span class="nf">ReadMoleculesFromMolFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">Sanitize</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">RemoveHydrogens</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">StrictParsing</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+ 1308     <span class="sd">&quot;&quot;&quot;Read molecule from a MDL Mol file.</span>
+ 1309 <span class="sd">    </span>
+ 1310 <span class="sd">    Arguments:</span>
+ 1311 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1312 <span class="sd">        Sanitize (bool): Sanitize molecules.</span>
+ 1313 <span class="sd">        RemoveHydrogens (bool): Remove hydrogens from molecules.</span>
+ 1314 <span class="sd">        StrictParsing (bool): Perform strict parsing.</span>
+ 1315 
+ 1316 <span class="sd">    Returns:</span>
+ 1317 <span class="sd">        list : List of RDKit molecule objects.</span>
+ 1318 
+ 1319 <span class="sd">    &quot;&quot;&quot;</span>
+ 1320     
+ 1321     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[]</span>
+ 1322     <span class="n">Mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMolFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">sanitize</span> <span class="o">=</span> <span class="n">Sanitize</span><span class="p">,</span> <span class="n">removeHs</span> <span class="o">=</span> <span class="n">RemoveHydrogens</span><span class="p">,</span> <span class="n">strictParsing</span> <span class="o">=</span> <span class="n">StrictParsing</span><span class="p">))</span>
+ 1323     <span class="k">return</span> <span class="n">Mols</span>
+ 1324 
+ 1325 <span class="k">def</span> <span class="nf">ReadMoleculesFromMol2File</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">Sanitize</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">RemoveHydrogens</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+ 1326     <span class="sd">&quot;&quot;&quot;Read molecule from a Tripos Mol2  file.</span>
+ 1327 <span class="sd">    </span>
+ 1328 <span class="sd">    Arguments:</span>
+ 1329 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1330 <span class="sd">        Sanitize (bool): Sanitize molecules.</span>
+ 1331 <span class="sd">        RemoveHydrogens (bool): Remove hydrogens from molecules.</span>
+ 1332 
+ 1333 <span class="sd">    Returns:</span>
+ 1334 <span class="sd">        list : List of RDKit molecule objects.</span>
+ 1335 
+ 1336 <span class="sd">    &quot;&quot;&quot;</span>
+ 1337     
+ 1338     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[]</span>
+ 1339     <span class="n">Mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMol2File</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span>  <span class="n">sanitize</span> <span class="o">=</span> <span class="n">Sanitize</span><span class="p">,</span> <span class="n">removeHs</span> <span class="o">=</span> <span class="n">RemoveHydrogens</span><span class="p">))</span>
+ 1340     <span class="k">return</span> <span class="n">Mols</span>
+ 1341 
+ 1342 <span class="k">def</span> <span class="nf">ReadMoleculesFromPDBFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">Sanitize</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">RemoveHydrogens</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+ 1343     <span class="sd">&quot;&quot;&quot;Read molecule from a PDB  file.</span>
+ 1344 <span class="sd">    </span>
+ 1345 <span class="sd">    Arguments:</span>
+ 1346 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1347 <span class="sd">        Sanitize (bool): Sanitize molecules.</span>
+ 1348 <span class="sd">        RemoveHydrogens (bool): Remove hydrogens from molecules.</span>
+ 1349 
+ 1350 <span class="sd">    Returns:</span>
+ 1351 <span class="sd">        list : List of RDKit molecule objects.</span>
+ 1352 
+ 1353 <span class="sd">    &quot;&quot;&quot;</span>
+ 1354     
+ 1355     <span class="n">Mols</span> <span class="o">=</span> <span class="p">[]</span>
+ 1356     <span class="n">Mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromPDBFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span>  <span class="n">sanitize</span> <span class="o">=</span> <span class="n">Sanitize</span><span class="p">,</span> <span class="n">removeHs</span> <span class="o">=</span> <span class="n">RemoveHydrogens</span><span class="p">))</span>
+ 1357     <span class="k">return</span> <span class="n">Mols</span>
+ 1358 
+ 1359 <span class="k">def</span> <span class="nf">ReadMoleculesFromSMILESFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">SMILESDelimiter</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">SMILESColIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">SMILESNameColIndex</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">SMILESTitleLine</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Sanitize</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+ 1360     <span class="sd">&quot;&quot;&quot;Read molecules from a SMILES file.</span>
+ 1361 <span class="sd">    </span>
+ 1362 <span class="sd">    Arguments:</span>
+ 1363 <span class="sd">        SMILESDelimiter (str): Delimiter for parsing SMILES line</span>
+ 1364 <span class="sd">        SMILESColIndex (int): Column index containing SMILES string.</span>
+ 1365 <span class="sd">        SMILESNameColIndex (int): Column index containing molecule name.</span>
+ 1366 <span class="sd">        SMILESTitleLine (int): Flag to indicate presence of title line.</span>
+ 1367 <span class="sd">        Sanitize (int): Sanitize molecules.</span>
+ 1368 
+ 1369 <span class="sd">    Returns:</span>
+ 1370 <span class="sd">        list : List of RDKit molecule objects.</span>
+ 1371 
+ 1372 <span class="sd">    &quot;&quot;&quot;</span>
+ 1373     
+ 1374     <span class="k">return</span>  <span class="n">Chem</span><span class="o">.</span><span class="n">SmilesMolSupplier</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">delimiter</span> <span class="o">=</span> <span class="n">SMILESDelimiter</span><span class="p">,</span> <span class="n">smilesColumn</span> <span class="o">=</span> <span class="n">SMILESColIndex</span><span class="p">,</span> <span class="n">nameColumn</span> <span class="o">=</span> <span class="n">SMILESNameColIndex</span><span class="p">,</span> <span class="n">titleLine</span> <span class="o">=</span> <span class="n">SMILESTitleLine</span><span class="p">,</span> <span class="n">sanitize</span> <span class="o">=</span> <span class="n">Sanitize</span><span class="p">)</span>
+ 1375 
+ 1376 <span class="k">def</span> <span class="nf">MoleculesWriter</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="o">**</span><span class="n">KeyWordArgs</span><span class="p">):</span>
+ 1377     <span class="sd">&quot;&quot;&quot;Set up a molecule writer.</span>
+ 1378 <span class="sd">    </span>
+ 1379 <span class="sd">    Arguments:</span>
+ 1380 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1381 <span class="sd">        **KeyWordArgs (dictionary) : Parameter name and value pairs for writing and</span>
+ 1382 <span class="sd">            processing molecules.</span>
+ 1383 
+ 1384 <span class="sd">    Returns:</span>
+ 1385 <span class="sd">        RDKit object : Molecule writer.</span>
+ 1386 
+ 1387 <span class="sd">    Notes:</span>
+ 1388 <span class="sd">        The file extension is used to determine type of the file and set up an appropriate</span>
+ 1389 <span class="sd">        file writer.</span>
+ 1390 
+ 1391 <span class="sd">    &quot;&quot;&quot;</span>
+ 1392     
+ 1393     <span class="c1"># Set default values for possible arguments...</span>
+ 1394     <span class="n">WriterArgs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Compute2DCoords&quot;</span> <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="s2">&quot;Kekulize&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="s2">&quot;SMILESKekulize&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="s2">&quot;SMILESDelimiter&quot;</span> <span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s2">&quot;SMILESIsomeric&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="s2">&quot;SMILESTitleLine&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="s2">&quot;SMILESMolName&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+ 1395 
+ 1396     <span class="c1"># Set specified values for possible arguments...</span>
+ 1397     <span class="k">for</span> <span class="n">Arg</span> <span class="ow">in</span> <span class="n">WriterArgs</span><span class="p">:</span>
+ 1398         <span class="k">if</span> <span class="n">Arg</span> <span class="ow">in</span> <span class="n">KeyWordArgs</span><span class="p">:</span>
+ 1399             <span class="n">WriterArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span> <span class="o">=</span> <span class="n">KeyWordArgs</span><span class="p">[</span><span class="n">Arg</span><span class="p">]</span>
+ 1400     
+ 1401     <span class="n">Writer</span> <span class="o">=</span> <span class="bp">None</span>
+ 1402     <span class="k">if</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;sdf sd&quot;</span><span class="p">):</span>
+ 1403         <span class="n">Writer</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SDWriter</span><span class="p">(</span><span class="n">FileName</span><span class="p">)</span>
+ 1404         <span class="n">Writer</span><span class="o">.</span><span class="n">SetKekulize</span><span class="p">(</span><span class="n">WriterArgs</span><span class="p">[</span><span class="s2">&quot;Kekulize&quot;</span><span class="p">])</span>
+ 1405     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;pdb&quot;</span><span class="p">):</span>
+ 1406         <span class="n">Writer</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PDBWriter</span><span class="p">(</span><span class="n">FileName</span><span class="p">)</span>
+ 1407     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="s2">&quot;smi&quot;</span><span class="p">):</span>
+ 1408         <span class="c1"># Text for the name column in the title line. Blank indicates not to include name column</span>
+ 1409         <span class="c1"># in the output file...</span>
+ 1410         <span class="n">NameHeader</span> <span class="o">=</span> <span class="s1">&#39;Name&#39;</span> <span class="k">if</span> <span class="n">WriterArgs</span><span class="p">[</span><span class="s2">&quot;SMILESMolName&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+ 1411         <span class="n">Writer</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SmilesWriter</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">delimiter</span> <span class="o">=</span> <span class="n">WriterArgs</span><span class="p">[</span><span class="s2">&quot;SMILESDelimiter&quot;</span><span class="p">],</span> <span class="n">nameHeader</span> <span class="o">=</span> <span class="n">NameHeader</span><span class="p">,</span> <span class="n">includeHeader</span> <span class="o">=</span> <span class="n">WriterArgs</span><span class="p">[</span><span class="s2">&quot;SMILESTitleLine&quot;</span><span class="p">],</span>  <span class="n">isomericSmiles</span> <span class="o">=</span> <span class="n">WriterArgs</span><span class="p">[</span><span class="s2">&quot;SMILESIsomeric&quot;</span><span class="p">],</span> <span class="n">kekuleSmiles</span> <span class="o">=</span> <span class="n">WriterArgs</span><span class="p">[</span><span class="s2">&quot;SMILESKekulize&quot;</span><span class="p">])</span>
+ 1412     <span class="k">else</span><span class="p">:</span>
+ 1413         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;RDKitUtil.WriteMolecules: Non supported file type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">FileName</span><span class="p">)</span>
+ 1414     
+ 1415     <span class="k">return</span> <span class="n">Writer</span>
+ 1416     
+ 1417 <span class="k">def</span> <span class="nf">WriteMolecules</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">Mols</span><span class="p">,</span> <span class="o">**</span><span class="n">KeyWordArgs</span><span class="p">):</span>
+ 1418     <span class="sd">&quot;&quot;&quot;Write molecules to an output file.</span>
+ 1419 <span class="sd">    </span>
+ 1420 <span class="sd">    Arguments:</span>
+ 1421 <span class="sd">        FileName (str): Name of a file with complete path.</span>
+ 1422 <span class="sd">        Mols (list): List of RDKit molecule objects. </span>
+ 1423 <span class="sd">        **KeyWordArgs (dictionary) : Parameter name and value pairs for writing and</span>
+ 1424 <span class="sd">            processing molecules.</span>
+ 1425 
+ 1426 <span class="sd">    Returns:</span>
+ 1427 <span class="sd">        int : Number of total molecules.</span>
+ 1428 <span class="sd">        int : Number of processed molecules written to output file.</span>
+ 1429 
+ 1430 <span class="sd">    Notes:</span>
+ 1431 <span class="sd">        The file extension is used to determine type of the file and set up an appropriate</span>
+ 1432 <span class="sd">        file writer.</span>
+ 1433 
+ 1434 <span class="sd">    &quot;&quot;&quot;</span>
+ 1435     
+ 1436     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="bp">False</span>
+ 1437     <span class="k">if</span> <span class="s2">&quot;Compute2DCoords&quot;</span> <span class="ow">in</span> <span class="n">KeyWordArgs</span><span class="p">:</span>
+ 1438         <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">KeyWordArgs</span><span class="p">[</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+ 1439     
+ 1440     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">KeyWordArgs</span><span class="p">[</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;SetSMILESMolProps&quot;</span> <span class="ow">in</span> <span class="n">KeyWordArgs</span> <span class="k">else</span> <span class="bp">False</span>
+ 1441         
+ 1442     <span class="n">MolCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+ 1443     <span class="n">ProcessedMolCount</span> <span class="o">=</span> <span class="mi">0</span>
+ 1444     
+ 1445     <span class="n">Writer</span> <span class="o">=</span> <span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="o">**</span><span class="n">KeyWordArgs</span><span class="p">)</span>
+ 1446     
+ 1447     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 1448         <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ProcessedMolCount</span><span class="p">)</span>
+ 1449     
+ 1450     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+ 1451     <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+ 1452         <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 1453             <span class="k">continue</span>
+ 1454 
+ 1455         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+ 1456             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+ 1457             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+ 1458                 <span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 1459                 
+ 1460         <span class="n">ProcessedMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 1461         <span class="k">if</span> <span class="n">Compute2DCoords</span><span class="p">:</span>
+ 1462             <span class="n">AllChem</span><span class="o">.</span><span class="n">Compute2DCoords</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 1463         
+ 1464         <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 1465     
+ 1466     <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 1467     
+ 1468     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ProcessedMolCount</span><span class="p">)</span>
+ 1469 
+ 1470 <span class="k">def</span> <span class="nf">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">):</span>
+ 1471     <span class="sd">&quot;&quot;&quot;Setup molecule properties for a writer to output.</span>
+ 1472 <span class="sd">    </span>
+ 1473 <span class="sd">    Arguments:</span>
+ 1474 <span class="sd">        Writer (object): RDKit writer object.</span>
+ 1475 <span class="sd">        Mol (object): RDKit molecule object.</span>
+ 1476 
+ 1477 <span class="sd">    Returns:</span>
+ 1478 <span class="sd">        object : Writer object.</span>
+ 1479 
+ 1480 <span class="sd">    &quot;&quot;&quot;</span>
+ 1481     <span class="n">PropNames</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Mol</span><span class="o">.</span><span class="n">GetPropNames</span><span class="p">())</span>
+ 1482     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">PropNames</span><span class="p">):</span>
+ 1483         <span class="n">Writer</span><span class="o">.</span><span class="n">SetProps</span><span class="p">(</span><span class="n">PropNames</span><span class="p">)</span>
+ 1484         
+ 1485     <span class="k">return</span> <span class="n">Writer</span>
+ 1486     
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

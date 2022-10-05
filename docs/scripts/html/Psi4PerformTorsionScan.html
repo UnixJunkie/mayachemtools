@@ -1,0 +1,335 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:Psi4PerformTorsionScan.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./Psi4PerformMinimization.html" title="Psi4PerformMinimization.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./Psi4VisualizeDualDescriptors.html" title="Psi4VisualizeDualDescriptors.html">Next</a></td><td width="34%" align="middle"><strong>Psi4PerformTorsionScan.py</strong></td><td width="33%" align="right"><a href="././code/Psi4PerformTorsionScan.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/Psi4PerformTorsionScan.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/Psi4PerformTorsionScan.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>Psi4PerformTorsionScan.py - Perform torsion scan</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>Psi4PerformTorsionScan.py [<b>--basisSet</b> &lt;text&gt;] [<b>--confParams</b> &lt;Name,Value,...&gt;] [<b>--energyDataFieldLabel</b> &lt;text&gt;] [<b>--energyRelativeDataFieldLabel</b> &lt;text&gt;] [<b>--energyUnits</b> &lt;text&gt;] [<b>--infile3D</b> &lt;yes or no&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--maxIters</b> &lt;number&gt;] [<b>--methodName</b> &lt;text&gt;] [<b>--modeMols</b> &lt;First or All&gt;] [<b>--modeTorsions</b> &lt;First or All&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpLevel</b> &lt;Molecules or TorsionAngles&gt;] [<b>--mpParams</b> &lt;Name,Value,...&gt;] [<b>--outfileMolName</b> &lt;yes or no&gt;] [<b>--outfileParams</b> &lt;Name,Value,...&gt;] [<b>--outPlotParams</b> &lt;Name,Value,...&gt;] [<b>--outPlotRelativeEnergy</b> &lt;yes or no&gt;] [<b>--outPlotTitleTorsionSpec</b> &lt;yes or no&gt;] [<b>--overwrite</b>] [<b>--precision</b> &lt;number&gt;] [<b>--psi4OptionsParams</b> &lt;Name,Value,...&gt;] [<b>--psi4RunParams</b> &lt;Name,Value,...&gt;] [<b>--quiet</b> &lt;yes or no&gt;] [<b>--reference</b> &lt;text&gt;] [<b>--torsionsFilterbyAtomIndices</b> &lt;Index1, Index2, ...&gt;] [<b>--torsionMaxMatches</b> &lt;number&gt;] [<b>--torsionMinimize</b> &lt;yes or no&gt;] [<b>--torsionRange</b> &lt;Start,Stop,Step&gt;] [<b>--useChirality</b> &lt;yes or no&gt;] [<b>-w</b> &lt;dir&gt;] <b>-t</b> &lt;torsions&gt; <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>Psi4PerformTorsionScan.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Perform torsion scan for molecules around torsion angles specified using SMILES/SMARTS patterns. A molecule is optionally minimized before performing a torsion scan using a forcefield. A set of initial 3D structures are generated for a molecule by scanning the torsion angle across the specified range and updating the 3D coordinates of the molecule. A conformation ensemble is optionally generated for each 3D structure representing a specific torsion angle using a combination of distance geometry and forcefield followed by constrained geometry optimization using a quantum chemistry method. The conformation with the lowest energy is selected to represent the torsion angle. An option is available to skip the generation of the conformation ensemble and simply calculate the energy for the initial 3D structure for a specific torsion torsion angle using a quantum chemistry method.</p>
+<p>The torsions are specified using SMILES or SMARTS patterns. A substructure match is performed to select torsion atoms in a molecule. The SMILES pattern match must correspond to four torsion atoms. The SMARTS patterns containing atom map numbers may match more than four atoms. The atom map numbers, however, must match exactly four torsion atoms. For example: [s:1][c:2]([aX2,cH1])!@[CX3:3](O)=[O:4] for thiophene esters and carboxylates as specified in Torsion Library (TorLib) [Ref 146].</p>
+<p>A Psi4 XYZ format geometry string is automatically generated for each molecule in input file. It contains atom symbols and 3D coordinates for each atom in a molecule. In addition, the formal charge and spin multiplicity are present in the the geometry string. These values are either retrieved from molecule properties named &#39;FormalCharge&#39; and &#39;SpinMultiplicty&#39; or dynamically calculated for a molecule.</p>
+<p>A set of four output files is generated for each torsion match in each molecule. The names of the output files are generated using the root of the specified output file. They may either contain sequential molecule numbers or molecule names as shown below:</p>
+<div class="OptionsBox">    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Energies.csv
+<br/>    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Plot.&lt;ImgExt&gt;
+<br/>    
+<br/>    or
+<br/>    
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Energies.csv
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Plot.&lt;ImgExt&gt;
+<br/>    </div>
+<p>The supported input file formats are: Mol (.mol), SD (.sdf, .sd), SMILES (.smi, .csv, .tsv, .txt)</p>
+<p>The supported output file formats are: SD (.sdf, .sd)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="b---basisSet-text-default:-auto"><b>-b, --basisSet</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Basis set to use for energy calculation or constrained energy minimization. Default: 6-31+G** for sulfur containing molecules; Otherwise, 6-31G** [ Ref 150 ]. The specified value must be a valid Psi4 basis set. No validation is performed.</p>
+<p>The following list shows a representative sample of basis sets available in Psi4:</p>
+<div class="OptionsBox">    STO-3G, 6-31G, 6-31+G, 6-31++G, 6-31G*, 6-31+G*,  6-31++G*, 
+<br/>    6-31G**, 6-31+G**, 6-31++G**, 6-311G, 6-311+G, 6-311++G,
+<br/>    6-311G*, 6-311+G*, 6-311++G*, 6-311G**, 6-311+G**, 6-311++G**,
+<br/>    cc-pVDZ, cc-pCVDZ, aug-cc-pVDZ, cc-pVDZ-DK, cc-pCVDZ-DK, def2-SVP,
+<br/>    def2-SVPD, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD
+<br/>    </div>
+</dd>
+<dt id="confParams-Name-Value-...-default:-auto"><b>--confParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for generating initial 3D coordinates for molecules in input file at specific torsion angles. A conformation ensemble is optionally generated for each 3D structure representing a specific torsion angle using a combination of distance geometry and forcefield followed by constrained geometry optimization using a quantum chemistry method. The conformation with the lowest energy is selected to represent the torsion angle.</p>
+<p>The supported parameter names along with their default values are shown below:</p>
+<div class="OptionsBox">    confMethod,ETKDG,
+<br/>    forceField,MMFF, forceFieldMMFFVariant,MMFF94,
+<br/>    enforceChirality,yes,embedRMSDCutoff,0.5,maxConfs,250,
+<br/>    maxConfsTorsions,50,useTethers,yes
+<br/>    
+<br/>    confMethod,ETKDG   [ Possible values: SDG, ETDG, KDG, ETKDG ]
+<br/>    forceField, MMFF   [ Possible values: UFF or MMFF ]
+<br/>    forceFieldMMFFVariant,MMFF94   [ Possible values: MMFF94 or MMFF94s ]
+<br/>    enforceChirality,yes   [ Possible values: yes or no ]
+<br/>    useTethers,yes   [ Possible values: yes or no ]
+<br/>    </div>
+<p>confMethod: Conformation generation methodology for generating initial 3D coordinates. Possible values: Standard Distance Geometry (SDG), Experimental Torsion-angle preference with Distance Geometry (ETDG), basic Knowledge-terms with Distance Geometry (KDG) and Experimental Torsion-angle preference along with basic Knowledge-terms with Distance Geometry (ETKDG) [Ref 129] .</p>
+<p>forceField: Forcefield method to use for energy minimization. Possible values: Universal Force Field (UFF) [ Ref 81 ] or Merck Molecular Mechanics Force Field [ Ref 83-87 ] .</p>
+<p>enforceChirality: Enforce chirality for defined chiral centers during forcefield minimization.</p>
+<p>maxConfs: Maximum number of conformations to generate for each molecule during the generation of an initial 3D conformation ensemble using a conformation generation methodology. The conformations are minimized using the specified forcefield. The lowest energy structure is selected for performing the torsion scan.</p>
+<p>maxConfsTorsion: Maximum number of 3D conformations to generate for conformation ensemble representing a specific torsion. The conformations are constrained at specific torsions angles and minimized using the specified forcefield and a quantum chemistry method. The lowest energy conformation is selected to calculate final torsion energy and written to the output file.</p>
+<p>embedRMSDCutoff: RMSD cutoff for retaining initial set of conformers embedded using distance geometry and forcefield minimization. All embedded conformers are kept for &#39;None&#39; value. Otherwise, only those conformers which are different from each other by the specified RMSD cutoff, 0.5 by default, are kept. The first embedded conformer is always retained.</p>
+<p>useTethers: Use tethers to optimize the final embedded conformation by applying a series of extra forces to align matching atoms to the positions of the core atoms. Otherwise, use simple distance constraints during the optimization.</p>
+</dd>
+<dt id="energyDataFieldLabel-text-default:-auto"><b>--energyDataFieldLabel</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Energy data field label for writing energy values. Default: Psi4_Energy (&lt;Units&gt;).</p>
+</dd>
+<dt id="energyRelativeDataFieldLabel-text-default:-auto"><b>--energyRelativeDataFieldLabel</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Relative energy data field label for writing energy values. Default: Psi4_Relative_Energy (&lt;Units&gt;).</p>
+</dd>
+<dt id="energyUnits-text-default:-kcal-mol"><b>--energyUnits</b> &lt;text&gt; [default: kcal/mol]</dt>
+<dd>
+<p>Energy units. Possible values: Hartrees, kcal/mol, kJ/mol, or eV.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infile3D-yes-or-no-default:-no"><b>--infile3D</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Skip generation and minimization of initial 3D structures for molecules in input file containing 3D coordinates.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes
+<br/>    
+<br/>    SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,auto,sanitize,yes
+<br/>    </div>
+<p>Possible values for smilesDelimiter: space, comma or tab.</p>
+</dd>
+<dt id="maxIters-number-default:-50"><b>--maxIters</b> &lt;number&gt; [default: 50]</dt>
+<dd>
+<p>Maximum number of iterations to perform for each molecule or conformer during constrained energy minimization by a quantum chemistry method.</p>
+</dd>
+<dt id="m---methodName-text-default:-auto"><b>-m, --methodName</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Method to use for energy calculation or constrained energy minimization. Default: B3LYP [ Ref 150 ]. The specified value must be a valid Psi4 method name. No validation is performed.</p>
+<p>The following list shows a representative sample of methods available in Psi4:</p>
+<div class="OptionsBox">    B1LYP, B2PLYP, B2PLYP-D3BJ, B2PLYP-D3MBJ, B3LYP, B3LYP-D3BJ,
+<br/>    B3LYP-D3MBJ, CAM-B3LYP, CAM-B3LYP-D3BJ, HF, HF-D3BJ,  HF3c, M05,
+<br/>    M06, M06-2x, M06-HF, M06-L, MN12-L, MN15, MN15-D3BJ,PBE, PBE0,
+<br/>    PBEH3c, PW6B95, PW6B95-D3BJ, WB97, WB97X, WB97X-D, WB97X-D3BJ
+<br/>    </div>
+</dd>
+<dt id="modeMols-First-or-All-default:-First"><b>--modeMols</b> &lt;First or All&gt; [default: First]</dt>
+<dd>
+<p>Perform torsion scan for the first molecule or all molecules in input file.</p>
+</dd>
+<dt id="modeTorsions-First-or-All-default:-First"><b>--modeTorsions</b> &lt;First or All&gt; [default: First]</dt>
+<dd>
+<p>Perform torsion scan for the first or all specified torsion pattern in molecules up to a maximum number of matches for each torsion specification as indicated by &#39;--torsionMaxMatches&#39; option.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpLevel-Molecules-or-TorsionAngles-default:-Molecules"><b>--mpLevel</b> &lt;Molecules or TorsionAngles&gt; [default: Molecules]</dt>
+<dd>
+<p>Perform multiprocessing at molecules or torsion angles level. Possible values: Molecules or TorsionAngles. The &#39;Molecules&#39; value starts a process pool at the molecules level. All torsion angles of a molecule are processed in a single process. The &#39;TorsionAngles&#39; value, however, starts a process pool at the torsion angles level. Each torsion angle in a torsion match for a molecule is processed in an individual process in the process pool.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name. The output file root is used for generating the names of the output files corresponding to structures, energies, and plots during the torsion scan.</p>
+</dd>
+<dt id="outfileMolName-yes-or-no-default:-no"><b>--outfileMolName</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Append molecule name to output file root during the generation of the names for output files. The default is to use &lt;MolNum&gt;. The non alphabetical characters in molecule names are replaced by underscores.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: kekulize,yes
+<br/>    </div>
+</dd>
+<dt id="outPlotParams-Name-Value-...-default:-auto"><b>--outPlotParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for generating plots using Seaborn module. The supported parameter names along with their default values are shown below:</p>
+<div class="OptionsBox">    type,linepoint,outExt,svg,width,10,height,5.6,
+<br/>    title,auto,xlabel,auto,ylabel,auto,titleWeight,bold,labelWeight,bold
+<br/>    style,darkgrid,palette,deep,font,sans-serif,fontScale,1,
+<br/>    context,notebook
+<br/>    </div>
+<p>Possible values:</p>
+<div class="OptionsBox">    type: linepoint, scatter, or line. Both points and lines are drawn
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for linepoint plot type.
+<br/>    outExt: Any valid format supported by Python module Matplotlib.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        For example: PDF (.pdf), PNG (.png), PS (.ps), SVG (.svg)
+<br/>    titleWeight, labelWeight: Font weight for title and axes labels.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Any valid value.
+<br/>    style: darkgrid, whitegrid, dark, white, ticks
+<br/>    palette: deep, muted, pastel, dark, bright, colorblind
+<br/>    font: Any valid font name
+<br/>    </div>
+</dd>
+<dt id="outPlotRelativeEnergy-yes-or-no-default:-yes"><b>--outPlotRelativeEnergy</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Plot relative energies in the torsion plot. The minimum energy value is subtracted from energy values to calculate relative energies.</p>
+</dd>
+<dt id="outPlotTitleTorsionSpec-yes-or-no-default:-yes"><b>--outPlotTitleTorsionSpec</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Append torsion specification to the title of the torsion plot.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="precision-number-default:-6"><b>--precision</b> &lt;number&gt; [default: 6]</dt>
+<dd>
+<p>Floating point precision for writing energy values.</p>
+</dd>
+<dt id="psi4OptionsParams-Name-Value-...-default:-none"><b>--psi4OptionsParams</b> &lt;Name,Value,...&gt; [default: none]</dt>
+<dd>
+<p>A comma delimited list of Psi4 option name and value pairs for setting global and module options. The names are &#39;option_name&#39; for global options and &#39;module_name__option_name&#39; for options local to a module. The specified option names must be valid Psi4 names. No validation is performed.</p>
+<p>The specified option name and value pairs are processed and passed to psi4.set_options() as a dictionary. The supported value types are float, integer, boolean, or string. The float value string is converted into a float. The valid values for a boolean string are yes, no, true, false, on, or off.</p>
+</dd>
+<dt id="psi4RunParams-Name-Value-...-default:-auto"><b>--psi4RunParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for configuring Psi4 jobs.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    MemoryInGB, 1
+<br/>    NumThreads, 1
+<br/>    OutputFile, auto   [ Possible  values: stdout, quiet, or FileName ]
+<br/>    ScratchDir, auto   [ Possivle values: DirName]
+<br/>    RemoveOutputFile, yes   [ Possible values: yes, no, true, or false]
+<br/>    </div>
+<p>These parameters control the runtime behavior of Psi4.</p>
+<p>The default file name for &#39;OutputFile&#39; is &lt;InFileRoot&gt;_Psi4.out. The PID is appended to output file name during multiprocessing as shown: &lt;InFileRoot&gt;_Psi4_&lt;PIDNum&gt;.out. The &#39;stdout&#39; value for &#39;OutputType&#39; sends Psi4 output to stdout. The &#39;quiet&#39; or &#39;devnull&#39; value suppresses all Psi4 output. The &#39;OutputFile&#39; is set to &#39;quiet&#39; for &#39;auto&#39; value during &#39;Conformers&#39; of &#39;--mpLevel&#39; option.</p>
+<p>The default &#39;Yes&#39; value of &#39;RemoveOutputFile&#39; option forces the removal of any existing Psi4 before creating new files to append output from multiple Psi4 runs.</p>
+<p>The option &#39;ScratchDir&#39; is a directory path to the location of scratch files. The default value corresponds to Psi4 default. It may be used to override the deafult path.</p>
+</dd>
+<dt id="q---quiet-yes-or-no-default:-no"><b>-q, --quiet</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use quiet mode. The warning and information messages will not be printed.</p>
+</dd>
+<dt id="reference-text-default:-auto"><b>--reference</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Reference wave function to use for energy calculation or constrained energy minimization. Default: RHF or UHF. The default values are Restricted Hartree-Fock (RHF) for closed-shell molecules with all electrons paired and Unrestricted Hartree-Fock (UHF) for open-shell molecules with unpaired electrons.</p>
+<p>The specified value must be a valid Psi4 reference wave function. No validation is performed. For example: ROHF, CUHF, RKS, etc.</p>
+<p>The spin multiplicity determines the default value of reference wave function for input molecules. It is calculated from number of free radical electrons using Hund&#39;s rule of maximum multiplicity defined as 2S + 1 where S is the total electron spin. The total spin is 1/2 the number of free radical electrons in a molecule. The value of &#39;SpinMultiplicity&#39; molecule property takes precedence over the calculated value of spin multiplicity.</p>
+</dd>
+<dt id="t---torsions-SMILES-SMARTS"><b>-t, --torsions</b> &lt;SMILES/SMARTS,...,...&gt;</dt>
+<dd>
+<p>SMILES/SMARTS patterns corresponding to torsion specifications. It&#39;s a comma delimited list of valid SMILES/SMART patterns.</p>
+<p>A substructure match is performed to select torsion atoms in a molecule. The SMILES pattern match must correspond to four torsion atoms. The SMARTS patterns containing atom map numbers may match more than four atoms. The atom map numbers, however, must match exactly four torsion atoms. For example: [s:1][c:2]([aX2,cH1])!@[CX3:3](O)=[O:4] for thiophene esters and carboxylates as specified in Torsion Library (TorLib) [Ref 146].</p>
+</dd>
+<dt id="torsionsFilterbyAtomIndices-Index1-Index2-...-default:-none"><b>--torsionsFilterbyAtomIndices</b> &lt;Index1, Index2, ...&gt; [default: none]</dt>
+<dd>
+<p>Comma delimited list of atom indices for filtering torsion matches corresponding to torsion specifications &quot;-t, --torsions&quot;. The atom indices must be valid. No explicit validation is performed. The list must contain at least 4 atom indices.</p>
+<p>The torsion atom indices, matched by &quot;-t, --torsions&quot; specifications, must be present in the list. Otherwise, the torsion matches are ignored.</p>
+</dd>
+<dt id="torsionMaxMatches-number-default:-5"><b>--torsionMaxMatches</b> &lt;number&gt; [default: 5]</dt>
+<dd>
+<p>Maximum number of torsions to match for each torsion specification in a molecule.</p>
+</dd>
+<dt id="torsionMinimize-yes-or-no-default:-no"><b>--torsionMinimize</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Perform constrained energy minimization on a conformation ensemble for a specific torsion angle and select the lowest energy conformation representing the torsion angle. A conformation ensemble is generated for each 3D structure representing a specific torsion angle using a combination of distance geometry and forcefield followed by constrained geometry optimization using a quantum chemistry method.</p>
+</dd>
+<dt id="torsionRange-Start-Stop-Step-default:-0-360-5"><b>--torsionRange</b> &lt;Start,Stop,Step&gt; [default: 0,360,5]</dt>
+<dd>
+<p>Start, stop, and step size angles in degrees for a torsion scan. In addition, you may specify values using start and stop angles from -180 to 180.</p>
+</dd>
+<dt id="useChirality-yes-or-no-default:-no"><b>--useChirality</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use chirrality during substructure matches for identification of torsions.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To perform a torsion scan on the first molecule in a SMILES file using a minimum energy structure of the molecule selected from an initial ensemble of conformations generated using distance geometry and forcefield, skip generation of conformation ensembles for specific torsion angles and constrained energy minimization of the ensemble, calculating single point at a specific torsion angle energy using B3LYP/6-31G** and B3LYP/6-31+G** for non-sulfur and sulfur containing molecules, generate output files corresponding to structure, energy and torsion plot, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; -i Psi4SampleTorsionScan.smi 
+      -o SampleOut.sdf</div>
+<p>To run the previous example on the first molecule in a SD file containing 3D coordinates and skip the generations of initial 3D structure, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot;  --infile3D yes
+      -i Psi4SampleTorsionScan3D.sdf  -o SampleOut.sdf</div>
+<p>To run the first example on all molecules in a SD file, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; --modeMols All
+      -i Psi4SampleTorsionScan.sdf -o SampleOut.sdf</div>
+<p>To run the first example on all molecules in a SD file containing 3D coordinates and skip the generation of initial 3D structures, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot;  --infile3D yes
+      --modeMols All -i Psi4SampleTorsionScan3D.sdf  -o SampleOut.sdf</div>
+<p>To perform a torsion scan on the first molecule in a SMILES file using a minimum energy structure of the molecule selected from an initial ensemble of conformations generated using distance geometry and forcefield, generate up to 50 conformations for specific torsion angles using ETKDG methodology followed by initial MMFF forcefield minimization and final energy minimization using B3LYP/6-31G** and B3LYP/6-31+G** for non-sulfur and sulfur containing molecules, generate output files corresponding to minimum energy structure, energy and torsion plot, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; --torsionMinimize Yes
+       -i Psi4SampleTorsionScan.smi -o SampleOut.sdf</div>
+<p>To run the previous example on all molecules in a SD file, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; --modeMols All
+       --torsionMinimize Yes -i Psi4SampleTorsionScan.sdf -o SampleOut.sdf</div>
+<p>To run the previous example on all molecules in a SD file containing 3D coordinates and skip the generation of initial 3D structures, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; --modeMols All
+       --infile3D yes --modeMols All  --torsionMinimize Yes
+       -i Psi4SampleTorsionScan.sdf -o SampleOut.sdf</div>
+<p>To run the previous example in multiprocessing mode at molecules level on all available CPUs without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; -i Psi4SampleTorsionScan.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes</div>
+<p>To run the previous example in multiprocessing mode at torsion angles level on all available CPUs without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; -i Psi4SampleTorsionScan.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes
+      --mpLevel TorsionAngles</div>
+<p>To run the previous example in multiprocessing mode on all available CPUs by loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; -i Psi4SampleTorsionScan.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes
+      --mpParams &quot;inputDataMode,InMemory&quot;</div>
+<p>To run the previous example in multiprocessing mode on specific number of CPUs and chunk size without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % Psi4PerformTorsionScan.py  -t &quot;CCCC&quot; -i Psi4SampleTorsionScan.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes
+      --mpParams &quot;inputDataMode,Lazy,numProcesses,4,chunkSize,8&quot;</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./Psi4CalculateEnergy.html">Psi4CalculateEnergy.py</a>, <a href="./Psi4GenerateConformers.html">Psi4GenerateConformers.py</a>, <a href="./Psi4GenerateConstrainedConformers.html">Psi4GenerateConstrainedConformers.py</a>, <a href="./Psi4PerformConstrainedMinimization.html">Psi4PerformConstrainedMinimization.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./Psi4PerformMinimization.html" title="Psi4PerformMinimization.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./Psi4VisualizeDualDescriptors.html" title="Psi4VisualizeDualDescriptors.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>Psi4PerformTorsionScan.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

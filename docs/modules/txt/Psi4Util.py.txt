@@ -1,0 +1,347 @@
+NAME
+    Psi4Util
+
+SYNOPSIS
+    import Psi4Util
+
+DESCRIPTION
+    Psi4Util module provides the following functions:
+
+    CalculateSinglePointEnergy, GetAtomPositions, InitializePsi4,
+    JoinMethodNameAndBasisSet, ListPsi4RunParamaters,
+    PerformGeometryOptimization, ProcessPsi4CubeFilesParameters,
+    ProcessPsi4OptionsParameters, ProcessPsi4RunParameters,
+    RemoveScratchFiles, RetrieveIsocontourRangeFromCubeFile,
+    RetrieveMinAndMaxValueFromCubeFile, UpdatePsi4OptionsParameters,
+    UpdatePsi4OutputFileUsingPID, UpdatePsi4RunParameters
+
+FUNCTIONS
+    CalculateSinglePointEnergy
+            CalculateSinglePointEnergy(psi4, Molecule, Method, BasisSet, ReturnWaveFunction = False, Quiet = False)
+
+        Calculate single point electronic energy in Hartrees using a
+        specified method and basis set.
+
+        *Arguments:*
+
+            psi4 (Object): Psi4 module reference.
+            Molecule (Object): Psi4 molecule object.
+            Method (str): A valid method name.
+            BasisSet (str): A valid basis set.
+            ReturnWaveFunction (boolean): Return wave function.
+            Quiet (boolean): Flag to print error message.
+
+        *Returns:*
+
+            float: Total electronic energy in Hartrees.
+            (float, psi4 object): Energy and wavefuction.
+
+    GetAtomPositions
+            GetAtomPositions(psi4, WaveFunction, InAngstroms = True)
+
+        Retrieve a list of lists containing coordinates of all atoms in the
+        molecule available in Psi4 wave function. By default, the atom
+        positions are returned in Angstroms. The Psi4 default is Bohr.
+
+        *Arguments:*
+
+            psi4 (Object): Psi4 module reference.
+            WaveFunction (Object): Psi4 wave function reference.
+            InAngstroms (bool): True - Positions in Angstroms; Otherwise, in Bohr.
+
+        *Returns:*
+
+            None or list : List of lists containing atom positions.
+
+        *Example(s):*
+
+            for AtomPosition in Psi4Util.GetAtomPositions(Psi4Handle, WaveFunction):
+                print("X: %s; Y: %s; Z: %s" % (AtomPosition[0], AtomPosition[1],
+                    AtomPosition[2]))
+
+    InitializePsi4
+            InitializePsi4(Psi4RunParams = None,  Psi4OptionsParams = None, PrintVersion = False, PrintHeader = False)
+
+        Import Psi4 module and configure it for running Psi4 jobs.
+
+        *Arguments:*
+
+            Psi4RunParams (dict): Runtime parameter name and value pairs.
+            Psi4OptionsParams (dict): Option name and value pairs. This is simply
+                passed to ps4.set_options().      
+            PrintVersion (boolean): Print version number.
+            PrintHeader (boolean): Print header information.
+
+        *Returns:*
+
+            Object: Psi4 module reference.
+
+    JoinMethodNameAndBasisSet
+            JoinMethodNameAndBasisSet(MethodName, BasisSet)
+
+        Join method name and basis set using a backslash delimiter. An empty
+        basis set specification is ignored.
+
+        *Arguments:*
+
+            MethodName (str): A valid method name.
+            BasisSet (str): A valid basis set or an empty string.
+
+        *Returns:*
+
+            str: MethodName/BasisSet or MethodName
+
+    ListPsi4RunParamaters
+            ListPsi4RunParamaters(psi4)
+
+        List values for a key set of the following Psi4 runtime parameters:
+        Memory, NumThreads, OutputFile, ScratchDir, DataDir.
+
+        *Arguments:*
+
+            psi4 (object): Psi4 module reference.
+
+        *Returns:*
+
+            None
+
+    PerformGeometryOptimization
+            PerformGeometryOptimization(psi4, Molecule, Method, BasisSet, ReturnWaveFunction = True, Quiet = False)
+
+        Perform geometry optimization using a specified method and basis
+        set.
+
+        *Arguments:*
+
+            psi4 (Object): Psi4 module reference.
+            Molecule (Object): Psi4 molecule object.
+            Method (str): A valid method name.
+            BasisSet (str): A valid basis set.
+            ReturnWaveFunction (boolean): Return wave function.
+            Quiet (boolean): Flag to print error message.
+
+        *Returns:*
+
+            float: Total electronic energy in Hartrees.
+            (float, psi4 object): Energy and wavefuction.
+
+    ProcessPsi4CubeFilesParameters
+            ProcessPsi4CubeFilesParameters(ParamsOptionName, ParamsOptionValue, ParamsDefaultInfo = None)
+
+        Process parameters for Psi4 runs and return a map containing
+        processed parameter names and values.
+
+        ParamsOptionValue is a comma delimited list of parameter name and
+        value pairs for generating cube files.
+
+        The supported parameter names along with their default and possible
+        values are shown below:
+
+        GridSpacing, 0.2, GridOverage, 4.0, IsoContourThreshold, 0.85
+
+        GridSpacing: Units: Bohr. A higher value reduces the size of the
+        cube files on the disk. This option corresponds to Psi4 option
+        CUBIC_GRID_SPACING.
+
+        GridOverage: Units: Bohr.This option corresponds to Psi4 option
+        CUBIC_GRID_OVERAGE.
+
+         IsoContourThreshold captures specified percent of the probability density
+         using the least amount of grid points. This option corresponds to Psi4 option
+         CUBEPROP_ISOCONTOUR_THRESHOLD.
+
+        *Arguments:*
+
+            ParamsOptionName (str): Command line Psi4 cube files option name.
+            ParamsOptionValues (str): Comma delimited list of parameter name and value pairs.
+            ParamsDefaultInfo (dict): Default values to override for selected parameters.
+
+        *Returns:*
+
+            dictionary: Processed parameter name and value pairs.
+
+    ProcessPsi4OptionsParameters
+            ProcessPsi4OptionsParameters(ParamsOptionName, ParamsOptionValue)
+
+        Process parameters for setting up Psi4 options and return a map
+        containing processed parameter names and values.
+
+        ParamsOptionValue is a comma delimited list of Psi4 option name and
+        value pairs for setting global and module options. The names are
+        'option_name' for global options and 'module_name__option_name' for
+        options local to a module. The specified option names must be valid
+        Psi4 names. No validation is performed.
+
+        The specified option name and value pairs are processed and passed
+        to psi4.set_options() as a dictionary. The supported value types are
+        float, integer, boolean, or string. The float value string is
+        converted into a float. The valid values for a boolean string are
+        yes, no, true, false, on, or off.
+
+        *Arguments:*
+
+            ParamsOptionName (str): Command line input parameters option name.
+            ParamsOptionValue (str): Comma delimited list of parameter name and value pairs.
+
+        *Returns:*
+
+            dictionary: Processed parameter name and value pairs.
+
+    ProcessPsi4RunParameters
+            ProcessPsi4RunParameters(ParamsOptionName, ParamsOptionValue, InfileName = None, ParamsDefaultInfo = None)
+
+        Process parameters for Psi4 runs and return a map containing
+        processed parameter names and values.
+
+        ParamsOptionValue a comma delimited list of parameter name and value
+        pairs for configuring Psi4 jobs.
+
+        The supported parameter names along with their default and possible
+        values are shown below:
+
+        MemoryInGB,1,NumThreads,1,OutputFile,auto,ScratchDir,auto,
+        RemoveOutputFile,yes
+
+        Possible values: OutputFile - stdout, quiet, or FileName; OutputFile
+        - DirName; RemoveOutputFile - yes, no, true, or false
+
+        These parameters control the runtime behavior of Psi4.
+
+        The default for 'OutputFile' is a file name <InFileRoot>_Psi4.out.
+        The PID is appened the output file name during multiprocessing. The
+        'stdout' value for 'OutputType' sends Psi4 output to stdout. The
+        'quiet' or 'devnull' value suppresses all Psi4 output.
+
+        The default 'Yes' value of 'RemoveOutputFile' option forces the
+        removal of any existing Psi4 before creating new files to append
+        output from multiple Psi4 runs.
+
+        The option 'ScratchDir' is a directory path to the location of
+        scratch files. The default value corresponds to Psi4 default. It may
+        be used to override the deafult path.
+
+        *Arguments:*
+
+            ParamsOptionName (str): Command line Psi4 run parameters option name.
+            ParamsOptionValues (str): Comma delimited list of parameter name and value pairs.
+            InfileName (str): Name of input file.
+            ParamsDefaultInfo (dict): Default values to override for selected parameters.
+
+        *Returns:*
+
+            dictionary: Processed parameter name and value pairs.
+
+        The parameter name and values specified in ParamsOptionValues are
+        validated before returning them in a dictionary.
+
+    RemoveScratchFiles
+            RemoveScratchFiles(psi4, OutputFile, PID = None)
+
+        Remove any leftover scratch files associated with the specified
+        output file. The file specification, <OutfileRoot>.*<PID>.* is used
+        to collect and remove files from the scratch directory. In addition,
+        the file psi.<PID>.clean, in current directory is removed.
+
+        *Arguments:*
+
+            psi4 (object): psi4 module reference.
+            OutputFile (str): Output file name.
+            PID (int): Process ID or None.
+
+        *Returns:*
+
+            None
+
+    RetrieveIsocontourRangeFromCubeFile
+            RetrieveIsocontourRangeFromCubeFile(CubeFileName)
+
+        Retrieve isocontour range values from the cube file. The range
+        values are retrieved from the second line in the cube file after the
+        string 'Isocontour range'.
+
+        *Arguments:*
+
+            CubeFileName (str): Cube file name.
+
+        *Returns:*
+
+            float: Minimum range value.
+            float: Maximum range value.
+
+    RetrieveMinAndMaxValueFromCubeFile
+            RetrieveMinAndMaxValueFromCubeFile(CubeFileName)
+
+        Retrieve minimum and maxmimum grid values from the cube file.
+
+        *Arguments:*
+
+            CubeFileName (str): Cube file name.
+
+        *Returns:*
+
+            float: Minimum value.
+            float: Maximum value.
+
+    UpdatePsi4OptionsParameters
+            UpdatePsi4OptionsParameters(psi4, OptionsInfo)
+
+        Update Psi4 options using psi4.set_options().
+
+        *Arguments:*
+
+            psi4 (object): Psi4 module reference.
+            OptionsInfo (dictionary) : Option name and value pairs for setting
+                global and module options.
+
+        *Returns:*
+
+            None
+
+    UpdatePsi4OutputFileUsingPID
+            UpdatePsi4OutputFileUsingPID(OutputFile, PID = None)
+
+        Append PID to output file name. The PID is automatically retrieved
+        during None value of PID.
+
+        *Arguments:*
+
+            OutputFile (str): Output file name.
+            PID (int): Process ID or None.
+
+        *Returns:*
+
+            str: Update output file name. Format: <OutFieRoot>_<PID>.<OutFileExt>
+
+    UpdatePsi4RunParameters
+            UpdatePsi4RunParameters(psi4, RunParamsInfo)
+
+        Update Psi4 runtime parameters. The supported parameter names along
+        with their default values are as follows: MemoryInGB: 1; NumThreads:
+        1, OutputFile: stdout; ScratchDir: auto; RemoveOutputFile: True.
+
+        *Arguments:*
+
+            psi4 (object): Psi4 module reference.
+            RunParamsInfo (dictionary) : Parameter name and value pairs for
+                configuring Psi4 jobs.
+
+        *Returns:*
+
+            None
+
+AUTHOR
+    Manish Sud <msud@san.rr.com>
+
+COPYRIGHT
+    Copyright (C) 2022 Manish Sud. All rights reserved.
+
+    The functionality available in this file is implemented using Psi4, an
+    open source quantum chemistry software package.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

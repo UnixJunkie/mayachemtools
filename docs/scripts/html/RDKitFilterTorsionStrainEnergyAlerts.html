@@ -1,0 +1,540 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitFilterTorsionStrainEnergyAlerts.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitFilterTorsionLibraryAlerts.html" title="RDKitFilterTorsionLibraryAlerts.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitGenerateConformers.html" title="RDKitGenerateConformers.html">Next</a></td><td width="34%" align="middle"><strong>RDKitFilterTorsionStrainEnergyAlerts.py</strong></td><td width="33%" align="right"><a href="././code/RDKitFilterTorsionStrainEnergyAlerts.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitFilterTorsionStrainEnergyAlerts.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitFilterTorsionStrainEnergyAlerts.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitFilterTorsionStrainEnergyAlerts.py - Filter torsion strain energy library alerts</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitFilterTorsionStrainEnergyAlerts.py [<b>--alertsMode</b> &lt;TotalEnergy, MaxSingleEnergy, or TotalOrMaxSingleEnergy&gt;] [<b>--alertsMaxSingleEnergyCutoff</b> &lt;Number&gt;] [<b>--alertsTotalEnergyCutoff</b> &lt;Number&gt;] [<b>--filterTorsionsNotObserved</b> &lt;yes or no&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--mode</b> &lt;filter or count&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name,Value,...&gt;] [<b>--outfileAlerts</b> &lt;yes or no&gt;] [<b>--outfileAlertsMode</b> &lt;All or AlertsOnly&gt;] [<b>--outfileFiltered</b> &lt;yes or no&gt;] [<b>--outfilesFilteredByRules</b> &lt;yes or no&gt;] [<b>--outfilesFilteredByRulesMaxCount</b> &lt;All or number&gt;] [<b>--outfileSummary</b> &lt;yes or no&gt;] [<b>--outfileSDFieldLabels</b> &lt;Type,Label,...&gt;] [<b>--outfileParams</b> &lt;Name,Value,...&gt;] [<b>--overwrite</b>] [<b>--precision</b> &lt;number&gt;] [ <b>--rotBondsSMARTSMode</b> &lt;NonStrict, SemiStrict,...&gt;] [<b>--rotBondsSMARTSPattern</b> &lt;SMARTS&gt;] [<b>--torsionEnergyLibraryFile</b> &lt;FileName or auto&gt;] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>RDKitFilterTorsionStrainEnergyAlerts.py [<b>--torsionEnergyLibraryFile</b> &lt;FileName or auto&gt;] <b>-l</b> | <b>--list</b></p>
+<p>RDKitFilterTorsionStrainEnergyAlerts.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Filter strained molecules from an input file for torsion strain energy library [ Ref 153 ] alerts by matching rotatable bonds against SMARTS patterns specified for torsion rules in a torsion energy library file and write out appropriate molecules to output files. The molecules must have 3D coordinates in input file. The default torsion strain energy library file, TorsionStrainEnergyLibrary.xml, is available under MAYACHEMTOOLS/lib/data directory.</p>
+<p>The data in torsion strain energy library file is organized in a hierarchical manner. It consists of one generic class and six specific classes at the highest level. Each class contains multiple subclasses corresponding to named functional groups or substructure patterns. The subclasses consist of torsion rules sorted from specific to generic torsion patterns. The torsion rule, in turn, contains a list of peak values for torsion angles and two tolerance values. A pair of tolerance values define torsion bins around a torsion peak value.</p>
+<p>A strain energy calculation method, &#39;exact&#39; or &#39;approximate&#39; [ Ref 153 ], is associated with each torsion rule for calculating torsion strain energy. The &#39;exact&#39; stain energy calculation relies on the energy bins available under the energy histogram consisting of 36 bins covering angles from -180 to 180. The width of each bin is 10 degree. The energy bins are are defined at the right end points. The first and the last energy bins correspond to -170 and 180 respectively. The torsion angle is mapped to a energy bin. An angle offset is calculated for the torsion angle from the the right end point angle of the bin. The strain energy is estimated for the angle offset based on the energy difference between the current and previous bins. The torsion strain energy, in terms of torsion energy units (TEUs), corresponds to the sum of bin strain energy and the angle offset strain energy.</p>
+<div class="OptionsBox">    Energy = BinEnergyDiff/10.0 * BinAngleOffset + BinEnergy[BinNum]
+<br/>    
+<br/>    Where:
+<br/>    
+<br/>    BinEnergyDiff = BinEnergy[BinNum] - BinEnergy[PreviousBinNum]
+<br/>    BinAngleOffset = TorsionAngle - BinAngleRightSide
+<br/>    </div>
+<p>The &#39;approximate&#39; strain energy calculation relies on the angle difference between a torsion angle and the torsion peaks observed for the torsion rules in the torsion energy library. The torsion angle is matched to a torsion peak based on the value of torsion angle difference. It must be less than or equal to the value for the second tolerance &#39;tolerance2&#39;. Otherwise, the torsion angle is not observed in the torsion energy library and a value of &#39;NA&#39; is assigned for torsion energy along with the lower and upper bounds on energy at 95% confidence interval. The &#39;approximate&#39; torsion energy (TEUs) for observed torsion angle is calculated using the following formula:</p>
+<div class="OptionsBox">    Energy = beta_1 * (AngleDiff ** 2) + beta_2 * (AngleDiff ** 4)
+<br/>    </div>
+<p>The coefficients &#39;beta_1&#39; and &#39;beta_2&#39; are available for the observed angles in the torsion strain energy library. The &#39;AngleDiff&#39; is the difference between the torsion angle and the matched torsion peak.</p>
+<p>For example:</p>
+<div class="OptionsBox">    &lt;library&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass id1=&quot;G&quot; id2=&quot;G&quot; name=&quot;GG&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass id1=&quot;C&quot; id2=&quot;O&quot; name=&quot;CO&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            &lt;hierarchySubClass name=&quot;Ester bond I&quot; smarts=&quot;O=[C:2][O:3]&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &lt;torsionRule method=&quot;exact&quot; smarts=
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &quot;[O:1]=[C:2]!@[O:3]~[CH0:4]&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;angleList&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;angle score=&quot;56.52&quot; tolerance1=&quot;20.00&quot;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        tolerance2=&quot;25.00&quot; value=&quot;0.0&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/angleList&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;histogram&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;bin count=&quot;1&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/histogram&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;histogram_shifted&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;bin count=&quot;0&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/histogram_shifted&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;histogram_converted&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;bin energy=&quot;4.67... lower=&quot;2.14...&quot; upper=&quot;Inf&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;bin energy=&quot;1.86...&quot; lower=&quot;1.58...&quot; upper=&quot;2.40...&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ...
+                       &lt;/histogram_converted&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &lt;/torsionRule&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &lt;torsionRule method=&quot;approximate&quot; smarts=
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &quot;[cH0:1][c:2]([cH0])!@[O:3][p:4]&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;angleList&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;angle beta_1=&quot;0.002...&quot; beta_2=&quot;-7.843...e-07&quot;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        score=&quot;27.14&quot; theta_0=&quot;-90.0&quot; tolerance1=&quot;30.00&quot;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        tolerance2=&quot;45.00&quot; value=&quot;-90.0&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/angleList&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;histogram&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;bin count=&quot;0&quot;/&gt;
+                         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/histogram&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;histogram_shifted&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        &lt;bin count=&quot;0&quot;/&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    &lt;/histogram_shifted&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &lt;/torsionRule&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ...
+         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+         &lt;hierarchyClass id1=&quot;N&quot; id2=&quot;C&quot; name=&quot;NC&quot;&gt;
+         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass id1=&quot;S&quot; id2=&quot;N&quot; name=&quot;SN&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass id1=&quot;C&quot; id2=&quot;S&quot; name=&quot;CS&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass id1=&quot;C&quot; id2=&quot;C&quot; name=&quot;CC&quot;&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;hierarchyClass id1=&quot;S&quot; id2=&quot;S&quot; name=&quot;SS&quot;&gt;
+         ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &lt;/hierarchyClass&gt;
+<br/>    &lt;/library&gt;
+<br/>    </div>
+<p>The rotatable bonds in a 3D molecule are identified using a default SMARTS pattern. A custom SMARTS pattern may be optionally specified to detect rotatable bonds. Each rotatable bond is matched to a torsion rule in the torsion strain energy library. The strain energy is calculated for each rotatable bond using the calculation method, &#39;exact&#39; or &#39;approximate&#39;, associated with the matched torsion rule.</p>
+<p>The total strain energy (TEUs) of a molecule corresponds to the sum of &#39;exact&#39; and &#39;approximate&#39; strain energies calculated for all matched rotatable bonds in the molecule. The total strain energy is set to &#39;NA&#39; for molecules containing a &#39;approximate&#39; energy estimate for a torsion angle not observed in the torsion energy library. In addition, the lower and upper bounds on energy at 95% confidence interval are set to &#39;NA&#39;.</p>
+<p>The following output files are generated after the filtering:</p>
+<div class="OptionsBox">    &lt;OutfileRoot&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_Filtered.sdf
+<br/>    &lt;OutfileRoot&gt;_AlertsSummary.csv
+<br/>    &lt;OutfileRoot&gt;_Filtered_TopRule*.sdf
+<br/>    </div>
+<p>The last two set of outfile files, &lt;OutfileRoot&gt;_AlertsSummary.csv and &lt;OutfileRoot&gt;_&lt;OutfileRoot&gt;_AlertsSummary.csv, are only generated during filtering by &#39;MaxSingleEnergy&#39;.</p>
+<p>The supported input file formats are: Mol (.mol), SD (.sdf, .sd)</p>
+<p>The supported output file formats are: SD (.sdf, .sd)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---alertsMode-TotalEnergy-...-default:-TotalEnergy"><b>-a, --alertsMode</b> &lt;TotalEnergy,...&gt; [default: TotalEnergy]</dt>
+<dd>
+<p>Torsion strain energy library alert types to use for filtering molecules containing rotatable bonds based on the calculated values for the total torsion strain energy of a molecule and the maximum single strain energy of a rotatable bond in a molecule.</p>
+<p>Possible values: TotalEnergy, MaxSingleEnergy, or TotalOrMaxSingleEnergy</p>
+<p>The strain energy cutoff values in terms of torsion energy units (TEUs) are used to filter molecules as shown below:</p>
+<div class="OptionsBox">    AlertsMode                AlertsEnergyCutoffs (TEUs)
+<br/>    
+<br/>    TotalEnergy               &gt;= TotalEnergyCutoff
+<br/>    
+<br/>    MaxSingleEnergy           &gt;= MaxSingleEnergyCutoff
+<br/>    
+<br/>    TotalOrMaxSingleEnergy    &gt;= TotalEnergyCutoff
+                              or &gt;= MaxSingleEnergyCutoff</div>
+</dd>
+<dt id="alertsMaxSingleEnergyCutoff-Number-default:-1.8"><b>--alertsMaxSingleEnergyCutoff</b> &lt;Number&gt; [default: 1.8]</dt>
+<dd>
+<p>Maximum single strain energy (TEUs) cutoff [ Ref 153 ] for filtering molecules based on the maximum value of a single strain energy of a rotatable bond in a molecule. This option is used during &#39;MaxSingleEnergy&#39; or &#39;TotalOrMaxSingleEnergy&#39; values of &#39;-a, --alertsMode&#39; option.</p>
+<p>The maximum single strain energy must be greater than or equal to the specified cutoff value for filtering molecules.</p>
+</dd>
+<dt id="alertsTotalEnergyCutoff-Number-default:-6.0"><b>--alertsTotalEnergyCutoff</b> &lt;Number&gt; [default: 6.0]</dt>
+<dd>
+<p>Total strain strain energy (TEUs) cutoff [ Ref 153 ] for filtering molecules based on total strain energy for all rotatable bonds in a molecule. This option is used during &#39;TotalEnergy&#39; or &#39;TotalOrMaxSingleEnergy&#39; values of &#39;-a, --alertsMode&#39; option.</p>
+<p>The total strain energy must be greater than or equal to the specified cutoff value for filtering molecules.</p>
+</dd>
+<dt id="filterTorsionsNotObserved-yes-or-no-default:-no"><b>--filterTorsionsNotObserved</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Filter molecules containing torsion angles not observed in torsion strain energy library. It&#39;s not possible to calculate torsion strain energies for these torsions during &#39;approximate&#39; match to a specified torsion in the library.</p>
+<p>The &#39;approximate&#39; strain energy calculation relies on the angle difference between a torsion angle and the torsion peaks observed for the torsion rules in the torsion energy library. The torsion angle is matched to a torsion peak based on the value of torsion angle difference. It must be less than or equal to the value for the second tolerance &#39;tolerance2&#39;. Otherwise, the torsion angle is not observed in the torsion energy library and a value of &#39;NA&#39; is assigned for torsion energy along with the lower and upper bounds on energy at 95% confidence interval.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,no,sanitize,yes,strictParsing,yes
+<br/>    </div>
+</dd>
+<dt id="l---list"><b>-l, --list</b></dt>
+<dd>
+<p>List torsion library information without performing any filtering.</p>
+</dd>
+<dt id="m---mode-filter-or-count-default:-filter"><b>-m, --mode</b> &lt;filter or count&gt; [default: filter]</dt>
+<dd>
+<p>Specify whether to filter molecules for torsion strain energy library [ Ref 153 ] alerts by matching rotatable bonds against SMARTS patterns specified for torsion rules to calculate torsion strain energies and write out the rest of the molecules to an outfile or simply count the number of matched molecules marked for filtering.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileAlerts-yes-or-no-default:-yes"><b>--outfileAlerts</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write out alerts information to SD output files.</p>
+</dd>
+<dt id="outfileAlertsMode-All-or-AlertsOnly-default:-AlertsOnly"><b>--outfileAlertsMode</b> &lt;All or AlertsOnly&gt; [default: AlertsOnly]</dt>
+<dd>
+<p>Write alerts information to SD output files for all alerts or only for alerts specified by &#39;--AlertsMode&#39; option. Possible values: All or AlertsOnly This option is only valid for &#39;Yes&#39; value of &#39;--outfileAlerts&#39; option.</p>
+<p>The following alerts information is added to SD output files using &#39;TorsionAlerts&#39; data field:</p>
+<div class="OptionsBox">    RotBondIndices TorsionIndices TorsionAngle
+<br/>    Energy EnergyLowerBoundCI EnergyUpperBoundCI
+<br/>    HierarchyClass HierarchySubClass TorsionRule
+<br/>    EnergyMethod AngleNotObserved MaxSingleEnergyAlert
+<br/>    </div>
+<p>The following data filelds are added to SD output files based on the value of &#39;--AlertsMode&#39; option:</p>
+<div class="OptionsBox">    TotalEnergy
+<br/>    TotalEnergyLowerBoundCI
+<br/>    TotalEnergyUpperBoundCI
+<br/>    
+<br/>    MaxSingleEnergy
+<br/>    MaxSingleEnergyAlertsCount
+<br/>    
+<br/>    AnglesNotObservedCount
+<br/>    </div>
+<p>The &#39;RotBondsCount&#39; is always added to SD output files containing both remaining and filtered molecules.</p>
+<p>Format:</p>
+<div class="OptionsBox">    &gt; &lt;RotBondsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TotalEnergy&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TotalEnergyLowerBoundCI&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TotalEnergyUpperBoundCI&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;MaxSingleEnergy&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;MaxSingleEnergyAlertsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;AnglesNotObservedCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TorsionAlerts (RotBondIndices TorsionIndices TorsionAngle
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Energy EnergyLowerBoundCI EnergyUpperBoundCI
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        HierarchyClass HierarchySubClass TorsionRule
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyMethod AngleNotObserved MaxSingleEnergyAlert)&gt;
+<br/>    AtomIndex2,AtomIndex3  AtomIndex1,AtomIndex2,AtomIndex3,AtomIndex4
+<br/>    Angle  Energy EnergyLowerBoundCI EnergyUpperBoundCI
+<br/>    ClassName SubClassName SMARTS EnergyMethod Yes|No|NA Yes|No|NA
+<br/>    ... ... ...
+<br/>    ... ... ...
+<br/>    </div>
+<p>A set of 12 values is written out as value of &#39;TorsionAlerts&#39; data field for each torsion in a molecule. The space character is used as a delimiter to separate values with in a set and across set. The comma character is used to delimit multiple values for each value in a set.</p>
+<p>The &#39;RotBondIndices&#39; and &#39;TorsionIndices&#39; contain 2 and 4 comma delimited values representing atom indices for a rotatable bond and the matched torsion.</p>
+<p>The &#39;Energy&#39; value is the estimated strain energy for the matched torsion. The &#39;EnergyLowerBoundCI&#39; and &#39;EnergyUpperBoundCI&#39; represent lower and bound energy estimates at 95% confidence interval. The &#39;EnergyMethod&#39;, exact or approximate, corresponds to the method employed to estimate torsion strain energy.</p>
+<p>The &#39;AngleNotObserved&#39; is only valid for &#39;approximate&#39; value of &#39;EnergyMethod&#39;. It has three possible values: Yes, No, or NA. The &#39;Yes&#39; value indicates that the &#39;TorsionAngle&#39; is outside the &#39;tolerance2&#39; of all peaks for the matched torsion rule in the torsion library.</p>
+<p>The &#39;MaxSingleEnergyAlert&#39; is valid for the following values of &#39;-a, --alertsMode&#39; option: &#39;MaxSingleEnergy&#39; or &#39;TotalOrMaxSingleEnergy&#39;. It has three possible values: Yes, No, or NA. It&#39;s set to &#39;NA&#39; for &#39;Yes&#39; or &#39;NA&#39; values of &#39;AngleNotObserved&#39;. The &#39;Yes&#39; value indicates that the estimated torsion energy is greater than the specified value for &#39;--alertsMaxSingleEnergyCutoff&#39; option.</p>
+<p>For example:</p>
+<div class="OptionsBox">    &gt;  &lt;RotBondsCount&gt;  (1) 
+<br/>    14
+<br/>    
+<br/>    &gt;  &lt;TotalEnergy&gt;  (1) 
+<br/>    6.8065
+<br/>    
+<br/>    &gt;  &lt;TotalEnergyLowerBoundCI&gt;  (1) 
+<br/>    5.9340
+<br/>    
+<br/>    &gt;  &lt;TotalEnergyUpperBoundCI&gt;  (1) 
+<br/>    NA
+<br/>    
+<br/>    &gt;  &lt;MaxSingleEnergy&gt;  (1) 
+<br/>    1.7108
+<br/>    
+<br/>    &gt;  &lt;MaxSingleEnergyAlertsCount&gt;  (1) 
+<br/>    0
+<br/>    
+<br/>    &gt;  &lt;AnglesNotObservedCount&gt;  (1) 
+<br/>    0
+     
+<br/>    &gt;  &lt;TorsionAlerts(RotBondIndices TorsionIndices TorsionAngle Energy
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyLowerBoundCI EnergyUpperBoundCI HierarchyClass
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        HierarchySubClass TorsionRule EnergyMethod AngleNotObserved
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MaxSingleEnergyAlert)&gt;  (1) 
+<br/>    2,1 48,2,1,0 61.90 0.0159 -0.0320 0.0674 CO Ether [O:1][CX4:2]!
+<br/>    @[O:3][CX4:4] Exact NA No 2,3 1,2,3,4 109.12 1.5640 1.1175 NA CC
+<br/>    None/[CX4][CX3] [O:1][CX4:2]!@[CX3:3]=[O:4] Exact NA No
+<br/>    ... ... ...
+<br/>    </div>
+</dd>
+<dt id="outfileFiltered-yes-or-no-default:-yes"><b>--outfileFiltered</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write out a file containing filtered molecules. Its name is automatically generated from the specified output file. Default: &lt;OutfileRoot&gt;_ Filtered.&lt;OutfileExt&gt;.</p>
+</dd>
+<dt id="outfilesFilteredByRules-yes-or-no-default:-auto"><b>--outfilesFilteredByRules</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Write out SD files containing filtered molecules for individual torsion rules triggering alerts in molecules. The name of SD files are automatically generated from the specified output file. Default file names: &lt;OutfileRoot&gt;_ Filtered_TopRule*.sdf.</p>
+<p>Default value: &#39;yes&#39; for &#39;MaxSingleEnergy&#39; of &#39;-a, --alertsMode&#39; option&#39;; otherwise, &#39;no&#39;.</p>
+<p>The output files are only generated for &#39;MaxSingleEnergy&#39; of &#39;-a, --alertsMode&#39; option.</p>
+<p>The following alerts information is added to SD output files:</p>
+<div class="OptionsBox">    &gt; &lt;RotBondsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TotalEnergy&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TotalEnergyLowerBoundCI&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TotalEnergyUpperBoundCI&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;MaxSingleEnergy&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;MaxSingleEnergyAlertsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;AnglesNotObservedCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt;  &lt;TorsionRule (HierarchyClass HierarchySubClass TorsionRule
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyMethod)&gt; 
+<br/>    ClassName SubClassName EnergyMethod SMARTS
+     ... ... ...
+<br/>    
+<br/>    &gt; &lt;TorsionRuleMaxSingleEnergyAlertsCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt; &lt;TorsionRuleAnglesNotObservedCount&gt;
+<br/>    Number
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleAlerts (RotBondIndices TorsionIndices TorsionAngle
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Energy EnergyLowerBoundCI EnergyUpperBoundCI
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        AngleNotObserved MaxSingleEnergyAlert)&gt;
+<br/>    AtomIndex2,AtomIndex3  AtomIndex1,AtomIndex2,AtomIndex3,AtomIndex4
+<br/>    Angle Energy EnergyLowerBoundCI EnergyUpperBoundCI EnergyMethod
+<br/>    Yes|No|NA Yes|No|NA
+     ... ... ...
+<br/>    </div>
+<p>For example:</p>
+<div class="OptionsBox">    &gt;  &lt;RotBondsCount&gt;  (1) 
+<br/>    8
+<br/>    
+<br/>    &gt;  &lt;TotalEnergy&gt;  (1) 
+<br/>    6.1889
+<br/>    
+<br/>    &gt;  &lt;TotalEnergyLowerBoundCI&gt;  (1) 
+<br/>    5.1940
+<br/>    
+<br/>    &gt;  &lt;TotalEnergyUpperBoundCI&gt;  (1) 
+<br/>    NA
+<br/>    
+<br/>    &gt;  &lt;MaxSingleEnergy&gt;  (1) 
+<br/>    1.9576
+<br/>    
+<br/>    &gt;  &lt;MaxSingleEnergyAlertsCount&gt;  (1) 
+<br/>    1
+<br/>    
+<br/>    &gt;  &lt;AnglesNotObservedCount&gt;  (1) 
+<br/>    0
+<br/>    
+<br/>    &gt;  &lt;TorsionRule (HierarchyClass HierarchySubClass TorsionRule
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyMethod)&gt;  (1) 
+<br/>    CC None/[CX4:2][CX4:3] [!#1:1][CX4:2]!@[CX4:3][!#1:4] Exact
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleMaxSingleEnergyAlertsCount&gt;  (1) 
+<br/>    0
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleAnglesNotObservedCount&gt;  (1) 
+<br/>    0
+<br/>    
+<br/>    &gt;  &lt;TorsionRuleAlerts (RotBondIndices TorsionIndices TorsionAngle
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Energy EnergyLowerBoundCI EnergyUpperBoundCI AngleNotObserved
+       MaxSingleEnergyAlert)&gt;  (1) 
+<br/>    1,3 0,1,3,4 72.63 0.8946 0.8756 0.9145 NA No
+<br/>    </div>
+</dd>
+<dt id="outfilesFilteredByRulesMaxCount-All-or-number-default:-10"><b>--outfilesFilteredByRulesMaxCount</b> &lt;All or number&gt; [default: 10]</dt>
+<dd>
+<p>Write out SD files containing filtered molecules for specified number of top N torsion rules triggering alerts for the largest number of molecules or for all torsion rules triggering alerts across all molecules.</p>
+<p>These output files are only generated for &#39;MaxSingleEnergy&#39; value of &#39;-a, --alertsMode&#39; option.</p>
+</dd>
+<dt id="outfileSummary-yes-or-no-default:-auto"><b>--outfileSummary</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Write out a CVS text file containing summary of torsions rules responsible for triggering torsion alerts. Its name is automatically generated from the specified output file. Default: &lt;OutfileRoot&gt;_AlertsSummary.csv.</p>
+<p>Default value: &#39;yes&#39; for &#39;MaxSingleEnergy&#39; of &#39;-a, --alertsMode&#39; option&#39;; otherwise, &#39;no&#39;.</p>
+<p>The summary output file is only generated for &#39;MaxSingleEnergy&#39; of &#39;-a, --alertsMode&#39; option.</p>
+<p>The following alerts information is written to summary text file:</p>
+<div class="OptionsBox">    TorsionRule, HierarchyClass, HierarchySubClass, EnergyMethod,
+<br/>    MaxSingleEnergyTorsionAlertTypes, MaxSingleEnergyTorsionAlertCount,
+<br/>    MaxSingleEnergyTorsionAlertMolCount
+     </div>
+<p>The double quotes characters are removed from SMART patterns before before writing them to a CSV file. In addition, the torsion rules are sorted by TorsionAlertMolCount.</p>
+</dd>
+<dt id="outfileSDFieldLabels-Type-Label-...-default:-auto"><b>--outfileSDFieldLabels</b> &lt;Type,Label,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of SD data field type and label value pairs for writing torsion alerts information along with molecules to SD files.</p>
+<p>The supported SD data field label type along with their default values are shown below:</p>
+<div class="OptionsBox">    For all SD files:
+<br/>    
+<br/>    RotBondsCountLabel, RotBondsCount,
+<br/>    
+<br/>    TotalEnergyLabel, TotalEnergy,
+<br/>    TotalEnergyLowerBoundCILabel, TotalEnergyLowerBoundCI,
+<br/>    TotalEnergyUpperBoundCILabel, TotalEnergyUpperBoundCI,
+<br/>    
+<br/>    MaxSingleEnergyLabel, MaxSingleEnergy,
+<br/>    MaxSingleEnergyAlertsCountLabel,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MaxSingleEnergyAlertsCount
+<br/>    
+<br/>    AnglesNotObservedCountLabel,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        AnglesNotObservedCount
+<br/>    
+<br/>    TorsionAlertsLabel, TorsionAlerts(RotBondIndices TorsionIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionAngle Energy EnergyLowerBoundCI EnergyUpperBoundCI
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        HierarchyClass HierarchySubClass TorsionRule
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyMethod AngleNotObserved)
+<br/>    
+<br/>    For individual SD files filtered by torsion rules:
+<br/>    
+<br/>    TorsionRuleLabel, TorsionRule (HierarchyClass HierarchySubClass
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyMethod TorsionRule)
+<br/>    TorsionRuleMaxSingleEnergyAlertsCountLabel,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionRuleMaxSingleEnergyAlertsCount,
+<br/>    TorsionRuleAnglesNotObservedCountLabel,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionRuleAnglesNotObservedCount,
+<br/>    TorsionRuleAlertsLabel, TorsionRuleAlerts (RotBondIndices
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        TorsionIndices TorsionAngle Energy EnergyLowerBoundCI
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        EnergyUpperBoundCI EnergyMethod AngleObserved)
+<br/>    </div>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: kekulize,yes
+<br/>    </div>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="precision-number-default:-4"><b>--precision</b> &lt;number&gt; [default: 4]</dt>
+<dd>
+<p>Floating point precision for writing torsion strain energy values.</p>
+</dd>
+<dt id="r---rotBondsSMARTSMode-NonStrict-SemiStrict-...-default:-SemiStrict"><b>-r, --rotBondsSMARTSMode</b> &lt;NonStrict, SemiStrict,...&gt; [default: SemiStrict]</dt>
+<dd>
+<p>SMARTS pattern to use for identifying rotatable bonds in a molecule for matching against torsion rules in the torsion library. Possible values: NonStrict, SemiStrict, Strict or Specify. The rotatable bond SMARTS matches are filtered to ensure that each atom in the rotatable bond is attached to at least two heavy atoms.</p>
+<p>The following SMARTS patterns are used to identify rotatable bonds for different modes:</p>
+<div class="OptionsBox">    NonStrict: [!$(*#*)&amp;!D1]-&amp;!@[!$(*#*)&amp;!D1]
+<br/>    
+<br/>    SemiStrict:
+<br/>    [!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)&amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)
+<br/>    &amp;!$(C([CH3])([CH3])[CH3])]-!@[!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)
+<br/>    &amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)&amp;!$(C([CH3])([CH3])[CH3])]
+<br/>    
+<br/>    Strict:
+<br/>    [!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)&amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)
+<br/>    &amp;!$(C([CH3])([CH3])[CH3])&amp;!$([CD3](=[N,O,S])-!@[#7,O,S!D1])
+<br/>    &amp;!$([#7,O,S!D1]-!@[CD3]=[N,O,S])&amp;!$([CD3](=[N+])-!@[#7!D1])
+<br/>    &amp;!$([#7!D1]-!@[CD3]=[N+])]-!@[!$(*#*)&amp;!D1&amp;!$(C(F)(F)F)
+<br/>    &amp;!$(C(Cl)(Cl)Cl)&amp;!$(C(Br)(Br)Br)&amp;!$(C([CH3])([CH3])[CH3])]
+<br/>    </div>
+<p>The &#39;NonStrict&#39; and &#39;Strict&#39; SMARTS patterns are available in RDKit. The &#39;NonStrict&#39; SMARTS pattern corresponds to original Daylight SMARTS specification for rotatable bonds. The &#39;SemiStrict&#39; SMARTS pattern is derived from &#39;Strict&#39; SMARTS patterns for its usage in this script.</p>
+<p>You may use any arbitrary SMARTS pattern to identify rotatable bonds by choosing &#39;Specify&#39; value for &#39;-r, --rotBondsSMARTSMode&#39; option and providing its value via &#39;--rotBondsSMARTSPattern&#39; option.</p>
+</dd>
+<dt id="rotBondsSMARTSPattern-SMARTS"><b>--rotBondsSMARTSPattern</b> &lt;SMARTS&gt;</dt>
+<dd>
+<p>SMARTS pattern for identifying rotatable bonds. This option is only valid for &#39;Specify&#39; value of &#39;-r, --rotBondsSMARTSMode&#39; option.</p>
+</dd>
+<dt id="t---torsionEnergyLibraryFile-FileName-or-auto-default:-auto"><b>-t, --torsionEnergyLibraryFile</b> &lt;FileName or auto&gt; [default: auto]</dt>
+<dd>
+<p>Specify a XML file name containing data for torsion starin energy library hierarchy or use default file, TorsionEnergyLibrary.xml, available in MAYACHEMTOOLS/lib/data directory.</p>
+<p>The format of data in local XML file must match format of the data in Torsion Library [ Ref 153 ] file available in MAYACHEMTOOLS data directory.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To filter molecules containing rotatable bonds with total strain energy value of &gt;= 6.0 (TEUs) based on torsion rules in the torsion energy library and write write out SD files containing remaining and filtered molecules, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py -i Sample3D.sdf
+      -o Sample3DOut.sdf</div>
+<p>To filter molecules containing any rotatable bonds with strain energy value of &gt;= 1.8 (TEUs) based on torsion rules in the torsion energy library and write out SD files containing remaining and filtered molecules, and individual SD files for torsion rules triggering alerts along with appropriate torsion information for red alerts, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py -a MaxSingleEnergy
+      -i Sample3D.sdf -o Sample3DOut.sdf</div>
+<p>To filter molecules containing rotatable bonds with total strain energy value of &gt;= 6.0 (TEUs) or any single strain energy value of &gt;= 1.8 (TEUs) and write out SD files containing remaining and filtered molecules, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py -a TotalOrMaxSingleEnergy
+      -i Sample3D.sdf -o Sample3DOut.sdf</div>
+<p>To filter molecules containing rotatable bonds with specific cutoff values for total or single torsion strain energy and write out SD files containing remaining and filtered molecules, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py -a TotalOrMaxSingleEnergy
+      -i Sample3D.sdf -o Sample3DOut.sdf --alertsTotalEnergyCutoff 6.0
+      --alertsMaxSingleEnergyCutoff 1.8</div>
+<p>To run the first example for filtering molecules and writing out torsion information for all alert types to SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py -i Sample3D.sdf
+      -o Sample3DOut.sdf --outfileAlertsMode All</div>
+<p>To run the first example for filtering molecules in multiprocessing mode on all available CPUs without loading all data into memory and write out SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py --mp yes -i Sample3D.sdf
+     -o Sample3DOut.sdf</div>
+<p>To run the first example for filtering molecules in multiprocessing mode on all available CPUs by loading all data into memory and write out a SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py  --mp yes --mpParams
+      &quot;inputDataMode, InMemory&quot; -i Sample3D.sdf  -o Sample3DOut.sdf</div>
+<p>To run the first example for filtering molecules in multiprocessing mode on specific number of CPUs and chunksize without loading all data into memory and write out SD files, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py --mp yes --mpParams
+      &quot;inputDataMode,lazy,numProcesses,4,chunkSize,8&quot;  -i Sample3D.sdf
+      -o Sample3DOut.sdf</div>
+<p>To list information about default torsion library file without performing any filtering, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py -l</div>
+<p>To list information about a local torsion library XML file without performing any, filtering, type:</p>
+<div class="ExampleBox">    % RDKitFilterTorsionStrainEnergyAlerts.py --torsionEnergyLibraryFile
+      TorsionStrainEnergyLibrary.xml -l</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="COLLABORATOR">COLLABORATOR</h2>
+<p>Pat Walters</p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitFilterChEMBLAlerts.html">RDKitFilterChEMBLAlerts.py</a>, <a href="./RDKitFilterPAINS.html">RDKitFilterPAINS.py</a>, <a href="./RDKitFilterTorsionLibraryAlerts.html">RDKitFilterTorsionLibraryAlerts.py</a>, <a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitSearchSMARTS.html">RDKitSearchSMARTS.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2022 Manish Sud. All rights reserved.</p>
+<p>This script uses the torsion strain energy library developed by Gu, S.; Smith, M. S.; Yang, Y.; Irwin, J. J.; Shoichet, B. K. [ Ref 153 ].</p>
+<p>The torsion strain enegy library is based on the Torsion Library jointly developed by the University of Hamburg, Center for Bioinformatics, Hamburg, Germany and F. Hoffmann-La-Roche Ltd., Basel, Switzerland.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitFilterTorsionLibraryAlerts.html" title="RDKitFilterTorsionLibraryAlerts.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitGenerateConformers.html" title="RDKitGenerateConformers.html">Next</a></td><td width="34%" align="middle"><strong>September 25, 2022</strong></td><td width="33%" align="right"><strong>RDKitFilterTorsionStrainEnergyAlerts.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

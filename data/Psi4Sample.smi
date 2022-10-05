@@ -1,0 +1,12 @@
+SMILES Name
+O Water
+S HydrogenSulfide
+C Methane
+[CH2] Methylene
+C=C Ethylene
+C#C Acetylene
+CC(=O)O AceticAcid
+c1ccccc1 Benzene
+c1ccccc1O Phenol
+c1ccccc1N Aniline
+NCC(=O)O Glycine
